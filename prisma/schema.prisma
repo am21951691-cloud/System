@@ -1,0 +1,110 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:../data/clinic.db"
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String
+  name      String
+  role      String   @default("member")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  committeeReviews CommitteeReview[]
+  auditLogs        AuditLog[]
+}
+
+model Patient {
+  id          Int      @id @default(autoincrement())
+  patientId   String   @unique
+  fullName    String
+  birthDate   String?
+  gender      String?
+  governorate String?
+  city        String?
+  phone       String?
+  address     String?
+  maritalStatus String?
+  financialStatus String?
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  visits Visit[]
+}
+
+model Visit {
+  id          Int      @id @default(autoincrement())
+  patientId   Int
+  date        DateTime @default(now())
+  specialty   String
+  description String?
+  generalCondition String?
+  diagnosis   String?
+  notes       String?
+  status      String   @default("new")
+  createdAt   DateTime @default(now())
+
+  patient          Patient           @relation(fields: [patientId], references: [id])
+  medications      Medication[]
+  committeeReviews CommitteeReview[]
+  finalDecision    FinalDecision?
+}
+
+model Medication {
+  id          Int    @id @default(autoincrement())
+  visitId     Int
+  name        String
+  concentration String?
+  dosage      String?
+  frequency   String?
+  duration    String?
+  usageMethod String?
+  quantity    String?
+  totalQuantity String?
+
+  visit Visit @relation(fields: [visitId], references: [id])
+}
+
+model CommitteeReview {
+  id        Int      @id @default(autoincrement())
+  visitId   Int
+  userId    Int
+  decision  String
+  notes     String?
+  createdAt DateTime @default(now())
+
+  visit Visit @relation(fields: [visitId], references: [id])
+  user  User  @relation(fields: [userId], references: [id])
+}
+
+model FinalDecision {
+  id              Int      @id @default(autoincrement())
+  visitId         Int      @unique
+  decisionType    String
+  dispenseDuration String?
+  dispenseQuantity String?
+  dispenseSchedule String?
+  reason          String?
+  doctorName      String?
+  createdAt       DateTime @default(now())
+
+  visit Visit @relation(fields: [visitId], references: [id])
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int?
+  action    String
+  details   String?
+  entityType String?
+  entityId  Int?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+}
