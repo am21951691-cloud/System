@@ -9,10 +9,6 @@ export default async function DecisionPage({ params }: { params: Promise<{ id: s
   const session = await getSession()
   if (!session) return null
 
-  // Ensure only doctor or admin can access
-  if (session.role !== 'admin' && session.role !== 'doctor') {
-    redirect(`/visits/${id}`)
-  }
 
   const visit = await prisma.visit.findUnique({
     where: { id: parseInt(id) },

@@ -250,7 +250,7 @@ export default async function VisitPage({ params }: { params: Promise<{ id: stri
             </form>
           </>
         )}
-        {visit.status === 'doctor_review' && (session.role === 'admin' || session.role === 'doctor') && (
+        {visit.status === 'doctor_review' && (
           <Link href={`/visits/${visit.id}/decision`} className="btn btn-green">
             ⚖️ إصدار القرار النهائي
           </Link>

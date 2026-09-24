@@ -71,7 +71,7 @@ export default async function DashboardPage({
         <div>
           <h1>📊 لوحة متابعة الحالات</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-            مرحباً بك {session.name} • {session.role === 'admin' ? 'مدير النظام' : session.role === 'doctor' ? 'طبيب مجمع' : 'عضو لجنة طبية'}
+            مرحباً بك د. {session.name}
           </p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -276,7 +276,7 @@ export default async function DashboardPage({
                           </Link>
                         )}
 
-                        {visit.status === 'doctor_review' && (session.role === 'admin' || session.role === 'doctor') && (
+                        {visit.status === 'doctor_review' && (
                           <Link
                             href={`/visits/${visit.id}/decision`}
                             className="btn btn-green"
