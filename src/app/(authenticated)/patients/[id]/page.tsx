@@ -21,12 +21,20 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
     <>
       <div className="page-header">
         <h1>📋 ملف المريض</h1>
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <Link
+            href={`/patients/${patient.id}/print`}
+            target="_blank"
+            className="btn btn-outline"
+            style={{ fontWeight: 600 }}
+          >
+            📚 تحميل / طباعة التاريخ الكامل (PDF)
+          </Link>
           <Link href={`/patients/${patient.id}/visits/new`} className="btn btn-primary">
-            ➕ إضافة زيارة
+            ➕ إضافة زيارة جديدة
           </Link>
           <Link href="/dashboard" className="btn btn-outline">
-            ← العودة
+            ← لوحة التحكم
           </Link>
         </div>
       </div>

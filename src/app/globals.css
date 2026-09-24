@@ -208,3 +208,115 @@ table tr:hover td { background: rgba(99,102,241,0.05); }
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
   .container { padding: 16px; }
 }
+
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+  margin-bottom: 16px;
+}
+
+.tab-btn {
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tab-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-input);
+}
+
+.tab-btn.active {
+  color: #fff;
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+/* Print View Styling */
+.print-paper {
+  background: #ffffff;
+  color: #111827;
+  max-width: 900px;
+  margin: 24px auto;
+  padding: 40px;
+  border-radius: var(--radius);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+  font-family: 'Noto Sans Arabic', sans-serif;
+  line-height: 1.6;
+}
+
+.print-paper table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+}
+
+.print-paper table th,
+.print-paper table td {
+  border: 1px solid #d1d5db;
+  padding: 10px 12px;
+  text-align: right;
+  font-size: 0.9rem;
+  color: #111827;
+}
+
+.print-paper table th {
+  background-color: #f3f4f6;
+  font-weight: 700;
+}
+
+.print-header {
+  border-bottom: 2px solid #111827;
+  padding-bottom: 16px;
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.print-footer {
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: 1px dashed #9ca3af;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  .no-print, nav, .page-header button, .btn {
+    display: none !important;
+  }
+  .print-paper {
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+    border-radius: 0 !important;
+  }
+  .container {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+}
+

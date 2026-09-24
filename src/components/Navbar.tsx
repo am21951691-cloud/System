@@ -27,16 +27,30 @@ export default async function Navbar() {
       </a>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <Link href="/dashboard" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+          📊 لوحة المتابعة
+        </Link>
+        <Link href="/patients/new" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+          ➕ مريض جديد
+        </Link>
         {session.role === 'admin' && (
-          <Link href="/admin/users" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-            إدارة المستخدمين
-          </Link>
+          <>
+            <Link href="/admin/users" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+              👥 المستخدمين
+            </Link>
+            <Link href="/admin/audit" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+              📜 سجل العمليات
+            </Link>
+          </>
         )}
-        <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-          👤 {session.name}
+        <span style={{ color: 'var(--text-primary)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span>👤 {session.name}</span>
+          <span style={{ fontSize: '0.75rem', padding: '2px 8px', borderRadius: '4px', background: 'var(--bg-input)', color: 'var(--text-secondary)' }}>
+            {session.role === 'admin' ? 'مدير' : session.role === 'doctor' ? 'طبيب' : 'عضو لجنة'}
+          </span>
         </span>
         <form action={logoutAction}>
-          <button type="submit" className="btn btn-outline" style={{ padding: '6px 16px', fontSize: '0.8rem' }}>
+          <button type="submit" className="btn btn-outline" style={{ padding: '6px 14px', fontSize: '0.8rem' }}>
             خروج
           </button>
         </form>

@@ -79,6 +79,14 @@ export default async function VisitPage({ params }: { params: Promise<{ id: stri
           </p>
         </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <Link
+            href={`/visits/${visit.id}/print`}
+            target="_blank"
+            className="btn btn-primary"
+            style={{ fontWeight: 600 }}
+          >
+            🖨️ تقرير الزيارة للطباعة / PDF
+          </Link>
           <DownloadPdfButton data={pdfData} />
           <Link href={`/patients/${visit.patient.id}`} className="btn btn-outline">
             📋 ملف المريض
