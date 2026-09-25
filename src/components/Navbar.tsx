@@ -39,7 +39,7 @@ export default async function Navbar() {
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '12px',
+          gap: '10px',
           flexWrap: 'wrap',
         }}
       >
@@ -47,8 +47,9 @@ export default async function Navbar() {
           href="/dashboard"
           className="tab-btn"
           style={{
-            fontSize: '0.85rem',
-            padding: '6px 12px',
+            fontSize: '0.95rem',
+            padding: '8px 16px',
+            minHeight: '44px',
             color: 'var(--text-secondary)',
             textDecoration: 'none',
           }}
@@ -59,8 +60,9 @@ export default async function Navbar() {
           href="/patients/new"
           className="tab-btn"
           style={{
-            fontSize: '0.85rem',
-            padding: '6px 12px',
+            fontSize: '0.95rem',
+            padding: '8px 16px',
+            minHeight: '44px',
             color: 'var(--text-secondary)',
             textDecoration: 'none',
           }}
@@ -71,8 +73,9 @@ export default async function Navbar() {
           href="/admin/audit"
           className="tab-btn"
           style={{
-            fontSize: '0.85rem',
-            padding: '6px 12px',
+            fontSize: '0.95rem',
+            padding: '8px 16px',
+            minHeight: '44px',
             color: 'var(--text-secondary)',
             textDecoration: 'none',
           }}
@@ -83,10 +86,13 @@ export default async function Navbar() {
         <span
           style={{
             color: 'var(--text-primary)',
-            fontSize: '0.85rem',
+            fontSize: '0.9rem',
             fontWeight: 600,
-            padding: '4px 8px',
-            background: 'rgba(255,255,255,0.05)',
+            padding: '8px 14px',
+            minHeight: '44px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            background: 'rgba(255,255,255,0.06)',
             borderRadius: 'var(--radius-sm)',
             border: '1px solid var(--border)',
           }}
@@ -99,8 +105,9 @@ export default async function Navbar() {
             type="submit"
             className="btn btn-outline"
             style={{
-              padding: '6px 12px',
-              fontSize: '0.8rem',
+              padding: '8px 16px',
+              minHeight: '44px',
+              fontSize: '0.9rem',
               color: 'var(--red)',
               borderColor: 'rgba(244, 63, 94, 0.3)',
             }}

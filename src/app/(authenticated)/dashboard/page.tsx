@@ -168,11 +168,11 @@ export default async function DashboardPage({
                         <td>{p.governorate || '—'}</td>
                         <td>{p.financialStatus || '—'}</td>
                         <td>
-                          <div style={{ display: 'flex', gap: '6px' }}>
-                            <Link href={`/patients/${p.id}`} className="btn btn-primary" style={{ padding: '4px 10px', fontSize: '0.75rem' }}>
+                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                            <Link href={`/patients/${p.id}`} className="btn btn-sm btn-primary">
                               📋 فتح الملف
                             </Link>
-                            <Link href={`/patients/${p.id}/visits/new`} className="btn btn-outline" style={{ padding: '4px 10px', fontSize: '0.75rem' }}>
+                            <Link href={`/patients/${p.id}/visits/new`} className="btn btn-sm btn-outline">
                               ➕ زيارة جديدة
                             </Link>
                           </div>
@@ -293,18 +293,16 @@ export default async function DashboardPage({
                           )}
                         </td>
                         <td>
-                          <div style={{ display: 'flex', gap: '6px' }}>
+                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                             <Link
                               href={`/patients/${p.id}`}
-                              className="btn btn-primary"
-                              style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                              className="btn btn-sm btn-primary"
                             >
                               📋 الملف
                             </Link>
                             <Link
                               href={`/patients/${p.id}/visits/new`}
-                              className="btn btn-outline"
-                              style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                              className="btn btn-sm btn-outline"
                             >
                               ➕ زيارة جديدة
                             </Link>
@@ -364,13 +362,12 @@ export default async function DashboardPage({
                         )}
                       </td>
                       <td>
-                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                           {/* Direct Workflow Buttons */}
                           {visit.status === 'committee_review' && (
                             <Link
                               href={`/visits/${visit.id}/committee`}
-                              className="btn btn-yellow"
-                              style={{ padding: '4px 10px', fontSize: '0.75rem', fontWeight: 700 }}
+                              className="btn btn-sm btn-yellow"
                             >
                               ✍️ إبداء الرأي
                             </Link>
@@ -379,8 +376,7 @@ export default async function DashboardPage({
                           {visit.status === 'doctor_review' && (
                             <Link
                               href={`/visits/${visit.id}/decision`}
-                              className="btn btn-green"
-                              style={{ padding: '4px 10px', fontSize: '0.75rem', fontWeight: 700 }}
+                              className="btn btn-sm btn-green"
                             >
                               ⚖️ اتخاذ القرار
                             </Link>
@@ -390,8 +386,7 @@ export default async function DashboardPage({
                             <form action={async () => { 'use server'; await sendToCommittee(visit.id) }}>
                               <button
                                 type="submit"
-                                className="btn btn-outline"
-                                style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                                className="btn btn-sm btn-outline"
                               >
                                 📤 للجنة
                               </button>
@@ -402,8 +397,7 @@ export default async function DashboardPage({
                             <Link
                               href={`/visits/${visit.id}/print`}
                               target="_blank"
-                              className="btn btn-outline"
-                              style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                              className="btn btn-sm btn-outline"
                             >
                               🖨️ التقرير
                             </Link>
@@ -411,11 +405,10 @@ export default async function DashboardPage({
 
                           <Link
                             href={`/visits/${visit.id}`}
-                            className="btn btn-outline"
-                            style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                            className="btn btn-sm btn-outline"
                             title="عرض كل التفاصيل"
                           >
-                            👁️
+                            👁️ التفاصيل
                           </Link>
                         </div>
                       </td>

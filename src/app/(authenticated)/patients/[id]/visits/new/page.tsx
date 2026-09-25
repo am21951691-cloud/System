@@ -63,9 +63,14 @@ export default async function NewVisitPage({ params }: { params: Promise<{ id: s
           <MedicationForm />
         </div>
 
-        <button type="submit" className="btn btn-primary">
-          ✅ حفظ الزيارة
-        </button>
+        <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
+          <button type="submit" className="btn btn-primary btn-lg" style={{ flex: 1, minWidth: '220px', justifyContent: 'center' }}>
+            ✅ حفظ الزيارة والروشتة
+          </button>
+          <Link href={`/patients/${patient.id}`} className="btn btn-outline" style={{ minWidth: '120px' }}>
+            إلغاء
+          </Link>
+        </div>
       </form>
     </>
   )

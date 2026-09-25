@@ -182,17 +182,17 @@ export default function LoginPage() {
           <button
             id="login-submit-button"
             type="submit"
-            className="btn btn-primary"
+            className="btn btn-primary btn-lg"
             disabled={loading || success}
             style={{
               width: '100%',
-              padding: '14px',
-              fontSize: '1.05rem',
-              fontWeight: 700,
+              minHeight: '52px',
+              fontSize: '1.15rem',
+              fontWeight: 800,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '8px',
+              gap: '10px',
               cursor: loading || success ? 'not-allowed' : 'pointer',
               opacity: loading || success ? 0.8 : 1,
             }}

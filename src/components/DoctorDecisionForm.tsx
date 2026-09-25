@@ -12,19 +12,21 @@ export default function DoctorDecisionForm({ visitId }: { visitId: number }) {
         <label style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '12px' }}>
           حدد القرار النهائي لصرف الدواء *
         </label>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+        <div className="grid-3">
           <label
             style={{
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              padding: '16px',
-              borderRadius: 'var(--radius-sm)',
+              padding: '20px 16px',
+              minHeight: '110px',
+              borderRadius: 'var(--radius)',
               border: `2px solid ${decisionType === 'charity' ? 'var(--green)' : 'var(--border)'}`,
-              background: decisionType === 'charity' ? 'rgba(34, 197, 94, 0.1)' : 'var(--bg-input)',
+              background: decisionType === 'charity' ? 'rgba(34, 197, 94, 0.12)' : 'var(--bg-input)',
               cursor: 'pointer',
               transition: 'all 0.2s',
+              textAlign: 'center',
             }}
           >
             <input
@@ -36,9 +38,9 @@ export default function DoctorDecisionForm({ visitId }: { visitId: number }) {
               style={{ display: 'none' }}
               required
             />
-            <span style={{ fontSize: '1.5rem', marginBottom: '4px' }}>🟢</span>
-            <strong style={{ color: 'var(--green)', fontSize: '1rem' }}>يصرف كصدقة</strong>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>مجاني بالكامل على نفقة المجمع</span>
+            <span style={{ fontSize: '1.8rem', marginBottom: '6px' }}>🟢</span>
+            <strong style={{ color: 'var(--green)', fontSize: '1.1rem' }}>يصرف كصدقة</strong>
+            <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '2px' }}>مجاني بالكامل على نفقة المجمع</span>
           </label>
 
           <label
@@ -47,12 +49,14 @@ export default function DoctorDecisionForm({ visitId }: { visitId: number }) {
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              padding: '16px',
-              borderRadius: 'var(--radius-sm)',
+              padding: '20px 16px',
+              minHeight: '110px',
+              borderRadius: 'var(--radius)',
               border: `2px solid ${decisionType === 'paid' ? '#38bdf8' : 'var(--border)'}`,
-              background: decisionType === 'paid' ? 'rgba(56, 189, 248, 0.1)' : 'var(--bg-input)',
+              background: decisionType === 'paid' ? 'rgba(56, 189, 248, 0.12)' : 'var(--bg-input)',
               cursor: 'pointer',
               transition: 'all 0.2s',
+              textAlign: 'center',
             }}
           >
             <input
@@ -64,9 +68,9 @@ export default function DoctorDecisionForm({ visitId }: { visitId: number }) {
               style={{ display: 'none' }}
               required
             />
-            <span style={{ fontSize: '1.5rem', marginBottom: '4px' }}>🔵</span>
-            <strong style={{ color: '#38bdf8', fontSize: '1rem' }}>يصرف بمقابل مالي</strong>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>يتحمل المريض التكلفة أو جزء منها</span>
+            <span style={{ fontSize: '1.8rem', marginBottom: '6px' }}>🔵</span>
+            <strong style={{ color: '#38bdf8', fontSize: '1.1rem' }}>يصرف بمقابل مالي</strong>
+            <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '2px' }}>يتحمل المريض التكلفة أو جزء منها</span>
           </label>
 
           <label
@@ -75,12 +79,14 @@ export default function DoctorDecisionForm({ visitId }: { visitId: number }) {
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              padding: '16px',
-              borderRadius: 'var(--radius-sm)',
+              padding: '20px 16px',
+              minHeight: '110px',
+              borderRadius: 'var(--radius)',
               border: `2px solid ${decisionType === 'denied' ? 'var(--red)' : 'var(--border)'}`,
-              background: decisionType === 'denied' ? 'rgba(239, 68, 68, 0.1)' : 'var(--bg-input)',
+              background: decisionType === 'denied' ? 'rgba(239, 68, 68, 0.12)' : 'var(--bg-input)',
               cursor: 'pointer',
               transition: 'all 0.2s',
+              textAlign: 'center',
             }}
           >
             <input
@@ -92,16 +98,16 @@ export default function DoctorDecisionForm({ visitId }: { visitId: number }) {
               style={{ display: 'none' }}
               required
             />
-            <span style={{ fontSize: '1.5rem', marginBottom: '4px' }}>🔴</span>
-            <strong style={{ color: 'var(--red)', fontSize: '1rem' }}>لا يصرف (رفض)</strong>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>عدم الموافقة على صرف هذه الروشتة</span>
+            <span style={{ fontSize: '1.8rem', marginBottom: '6px' }}>🔴</span>
+            <strong style={{ color: 'var(--red)', fontSize: '1.1rem' }}>لا يصرف (رفض)</strong>
+            <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '2px' }}>عدم الموافقة على صرف هذه الروشتة</span>
           </label>
         </div>
       </div>
 
       {(decisionType === 'charity' || decisionType === 'paid') && (
-        <div style={{ padding: '16px', background: 'var(--bg-input)', borderRadius: 'var(--radius-sm)', margin: '16px 0', border: '1px solid var(--border)' }}>
-          <h3 style={{ fontSize: '0.95rem', marginBottom: '12px', color: 'var(--text-primary)' }}>
+        <div style={{ padding: '20px 16px', background: 'var(--bg-input)', borderRadius: 'var(--radius)', margin: '20px 0', border: '1px solid var(--border)' }}>
+          <h3 style={{ fontSize: '1.05rem', marginBottom: '14px', color: 'var(--text-primary)', fontWeight: 700 }}>
             📦 تفاصيل وجدولة الصرف
           </h3>
           <div className="grid-3">
@@ -133,8 +139,8 @@ export default function DoctorDecisionForm({ visitId }: { visitId: number }) {
       <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
         <button
           type="submit"
-          className={decisionType === 'denied' ? 'btn btn-red' : 'btn btn-green'}
-          style={{ padding: '12px 36px', fontSize: '1rem', fontWeight: 700 }}
+          className={`btn btn-lg ${decisionType === 'denied' ? 'btn-red' : 'btn-green'}`}
+          style={{ width: '100%', justifyContent: 'center' }}
         >
           {decisionType === 'denied' ? '🔴 اعتماد رفض الصرف' : '✅ اعتماد القرار النهائي للصرف'}
         </button>

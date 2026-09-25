@@ -169,21 +169,21 @@ export default async function CommitteeReviewPage({ params }: { params: Promise<
 
         <form action={submitReviewWithVisit}>
           <div className="form-group">
-            <label style={{ fontSize: '0.95rem', marginBottom: '8px' }}>الرأي المقترح للحالة *</label>
-            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '10px 16px', background: 'var(--bg-input)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+            <label style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '12px' }}>الرأي المقترح للحالة *</label>
+            <div className="grid-3">
+              <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', cursor: 'pointer', padding: '14px 20px', minHeight: '52px', background: 'var(--bg-input)', borderRadius: 'var(--radius)', border: '2px solid rgba(16, 185, 129, 0.4)' }}>
                 <input type="radio" name="decision" value="approved" required />
-                <span style={{ fontWeight: 600, color: 'var(--green)' }}>🟢 موافق على الصرف</span>
+                <span style={{ fontWeight: 700, color: 'var(--green)', fontSize: '1.05rem' }}>🟢 موافق على الصرف</span>
               </label>
 
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '10px 16px', background: 'var(--bg-input)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+              <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', cursor: 'pointer', padding: '14px 20px', minHeight: '52px', background: 'var(--bg-input)', borderRadius: 'var(--radius)', border: '2px solid rgba(244, 63, 94, 0.4)' }}>
                 <input type="radio" name="decision" value="rejected" required />
-                <span style={{ fontWeight: 600, color: 'var(--red)' }}>🔴 غير موافق على الصرف</span>
+                <span style={{ fontWeight: 700, color: 'var(--red)', fontSize: '1.05rem' }}>🔴 غير موافق على الصرف</span>
               </label>
 
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '10px 16px', background: 'var(--bg-input)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+              <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', cursor: 'pointer', padding: '14px 20px', minHeight: '52px', background: 'var(--bg-input)', borderRadius: 'var(--radius)', border: '2px solid rgba(245, 158, 11, 0.4)' }}>
                 <input type="radio" name="decision" value="needs_info" required />
-                <span style={{ fontWeight: 600, color: 'var(--yellow)' }}>🟡 يحتاج معلومات إضافية</span>
+                <span style={{ fontWeight: 700, color: 'var(--yellow)', fontSize: '1.05rem' }}>🟡 يحتاج معلومات إضافية</span>
               </label>
             </div>
           </div>
@@ -197,11 +197,11 @@ export default async function CommitteeReviewPage({ params }: { params: Promise<
             ></textarea>
           </div>
 
-          <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
-            <button type="submit" className="btn btn-primary" style={{ padding: '10px 32px' }}>
+          <div style={{ display: 'flex', gap: '14px', marginTop: '24px', flexWrap: 'wrap' }}>
+            <button type="submit" className="btn btn-primary btn-lg" style={{ flex: 1, minWidth: '220px' }}>
               ✅ اعتماد وتسجيل الرأي
             </button>
-            <Link href={`/visits/${visit.id}`} className="btn btn-outline">
+            <Link href={`/visits/${visit.id}`} className="btn btn-outline" style={{ minWidth: '120px' }}>
               إلغاء
             </Link>
           </div>

@@ -188,29 +188,29 @@ export default async function VisitPage({ params }: { params: Promise<{ id: stri
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', marginTop: '8px' }}>
         {visit.status === 'new' && (
-          <form action={sendToCommitteeWithId}>
-            <button type="submit" className="btn btn-yellow">
-              📤 إرسال إلى اللجنة
+          <form action={sendToCommitteeWithId} style={{ flex: 1, minWidth: '220px' }}>
+            <button type="submit" className="btn btn-yellow btn-lg" style={{ width: '100%', justifyContent: 'center' }}>
+              📤 إرسال الحالة إلى اللجنة الطبية
             </button>
           </form>
         )}
         {visit.status === 'committee_review' && (
           <>
-            <Link href={`/visits/${visit.id}/committee`} className="btn btn-yellow">
-              📝 إضافة مراجعة لجنة
+            <Link href={`/visits/${visit.id}/committee`} className="btn btn-yellow btn-lg" style={{ flex: 1, minWidth: '200px', justifyContent: 'center' }}>
+              ✍️ تسجيل رأي اللجنة الطبية
             </Link>
-            <form action={sendToDoctorWithId}>
-              <button type="submit" className="btn btn-primary">
-                📤 إرسال إلى الطبيب
+            <form action={sendToDoctorWithId} style={{ flex: 1, minWidth: '200px' }}>
+              <button type="submit" className="btn btn-primary btn-lg" style={{ width: '100%', justifyContent: 'center' }}>
+                📤 إرسال الحالة إلى الطبيب للاعتماد
               </button>
             </form>
           </>
         )}
         {visit.status === 'doctor_review' && (
-          <Link href={`/visits/${visit.id}/decision`} className="btn btn-green">
-            ⚖️ إصدار القرار النهائي
+          <Link href={`/visits/${visit.id}/decision`} className="btn btn-green btn-lg" style={{ flex: 1, minWidth: '240px', justifyContent: 'center' }}>
+            ⚖️ إصدار واعتماد القرار النهائي للصرف
           </Link>
         )}
       </div>

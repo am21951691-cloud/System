@@ -51,14 +51,13 @@ export default function VisitTimeline({ visits }: { visits: Visit[] }) {
             )}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
             <StatusBadge status={visit.status} />
 
             <Link
               href={`/visits/${visit.id}/print`}
               target="_blank"
-              className="btn btn-outline"
-              style={{ padding: '6px 12px', fontSize: '0.8rem' }}
+              className="btn btn-sm btn-outline"
               title="طباعة أو تحميل تقرير الزيارة كـ PDF"
             >
               🖨️ تقرير PDF
@@ -66,8 +65,7 @@ export default function VisitTimeline({ visits }: { visits: Visit[] }) {
 
             <Link
               href={`/visits/${visit.id}`}
-              className="btn btn-primary"
-              style={{ padding: '6px 14px', fontSize: '0.8rem' }}
+              className="btn btn-sm btn-primary"
             >
               عرض التفاصيل
             </Link>

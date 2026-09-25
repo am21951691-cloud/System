@@ -149,23 +149,23 @@ export default function NewPatientPage() {
             type="submit"
             name="targetStatus"
             value="committee_review"
-            className="btn btn-primary"
-            style={{ padding: '14px 28px', fontSize: '1rem', fontWeight: 700 }}
+            className="btn btn-primary btn-lg"
+            style={{ flex: 1, minWidth: '280px', justifyContent: 'center' }}
           >
-            🚀 حفظ المريض والروشتة وإرسالها للجنة مباشرة
+            🚀 حفظ المريض والروشتة وإرسالها للجنة
           </button>
 
           <button
             type="submit"
             name="targetStatus"
             value="new"
-            className="btn btn-outline"
-            style={{ padding: '14px 22px', fontSize: '0.95rem' }}
+            className="btn btn-outline btn-lg"
+            style={{ minWidth: '200px', justifyContent: 'center' }}
           >
-            💾 حفظ كحالة جديدة (مسودة)
+            💾 حفظ كمسودة جديدة
           </button>
 
-          <Link href="/dashboard" className="btn btn-outline" style={{ padding: '14px 22px' }}>
+          <Link href="/dashboard" className="btn btn-outline btn-lg" style={{ minWidth: '100px', justifyContent: 'center' }}>
             إلغاء
           </Link>
         </div>
