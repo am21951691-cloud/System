@@ -249,6 +249,7 @@ sequenceDiagram
 ### ☁️ خامساً: إعدادات Cloudflare والمستودع البرمجي
 - [x] إضافة ملفات الضبط `wrangler.jsonc` و `open-next.config.ts`.
 - [x] حل خطأ الارتباط الذاتي للمشروع `WORKER_SELF_REFERENCE: medical-complex-system which was not found (Error 10143)`.
+- [x] ربط قاعدة بيانات **Cloudflare D1** (`clinic-db` بمعرف `010ca23d-e436-404b-8e50-3e42f98ac091`) وتثبيت المحول `@prisma/adapter-d1` وتوليد ترحيل الجداول `migrations/0001_init.sql`.
 - [x] توثيق خطوات تشغيل نفق Cloudflare Tunnel الآمن للمستشفيات والمراكز الطبية.
 - [x] مزامنة الكود ورفعه على مستودع GitHub على الفرعين `main` و `master`.
 

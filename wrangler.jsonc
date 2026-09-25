@@ -10,6 +10,13 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "clinic-db",
+      "database_id": "010ca23d-e436-404b-8e50-3e42f98ac091"
+    }
+  ],
   "observability": {
     "enabled": true
   }
