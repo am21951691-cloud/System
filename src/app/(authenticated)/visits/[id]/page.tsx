@@ -3,7 +3,6 @@ import { getSession } from '@/lib/auth'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import StatusBadge from '@/components/StatusBadge'
-import DownloadPdfButton from '@/components/DownloadPdfButton'
 import { sendToCommittee, sendToDoctor } from '@/lib/actions/visit-actions'
 
 export default async function VisitPage({ params }: { params: Promise<{ id: string }> }) {
@@ -29,46 +28,6 @@ export default async function VisitPage({ params }: { params: Promise<{ id: stri
   const sendToCommitteeWithId = sendToCommittee.bind(null, visit.id)
   const sendToDoctorWithId = sendToDoctor.bind(null, visit.id)
 
-  const pdfData = {
-    patient: {
-      fullName: visit.patient.fullName,
-      patientId: visit.patient.patientId,
-      gender: visit.patient.gender,
-      phone: visit.patient.phone,
-      governorate: visit.patient.governorate,
-      city: visit.patient.city,
-    },
-    visit: {
-      specialty: visit.specialty,
-      description: visit.description,
-      diagnosis: visit.diagnosis,
-      generalCondition: visit.generalCondition,
-      createdAt: new Date(visit.createdAt).toLocaleDateString('ar-EG'),
-    },
-    medications: visit.medications.map(m => ({
-      name: m.name,
-      concentration: m.concentration,
-      dosage: m.dosage,
-      frequency: m.frequency,
-      duration: m.duration,
-      quantity: m.quantity,
-    })),
-    committeeReviews: visit.committeeReviews.map(r => ({
-      userName: r.user.name,
-      decision: r.decision === 'approved' ? 'موافق' : r.decision === 'rejected' ? 'غير موافق' : 'يحتاج معلومات',
-      notes: r.notes,
-      createdAt: new Date(r.createdAt).toLocaleDateString('ar-EG'),
-    })),
-    finalDecision: visit.finalDecision ? {
-      decisionType: visit.finalDecision.decisionType,
-      dispenseDuration: visit.finalDecision.dispenseDuration,
-      dispenseQuantity: visit.finalDecision.dispenseQuantity,
-      dispenseSchedule: visit.finalDecision.dispenseSchedule,
-      doctorName: visit.finalDecision.doctorName,
-      reason: visit.finalDecision.reason,
-    } : null,
-  }
-
   return (
     <>
       <div className="page-header">
@@ -87,7 +46,6 @@ export default async function VisitPage({ params }: { params: Promise<{ id: stri
           >
             🖨️ تقرير الزيارة للطباعة / PDF
           </Link>
-          <DownloadPdfButton data={pdfData} />
           <Link href={`/patients/${visit.patient.id}`} className="btn btn-outline">
             📋 ملف المريض
           </Link>

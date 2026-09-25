@@ -8,7 +8,7 @@ import { redirect } from 'next/navigation'
 
 export async function createUser(formData: FormData) {
   const session = await getSession()
-  if (!session || session.role !== 'admin') redirect('/dashboard')
+  if (!session) redirect('/login')
 
   const hashedPassword = await bcrypt.hash(formData.get('password') as string, 10)
 
@@ -27,7 +27,7 @@ export async function createUser(formData: FormData) {
 
 export async function toggleUserActive(userId: number) {
   const session = await getSession()
-  if (!session || session.role !== 'admin') redirect('/dashboard')
+  if (!session) redirect('/login')
 
   const user = await prisma.user.findUnique({ where: { id: userId } })
   if (!user) return

@@ -99,3 +99,53 @@ npm run build
 npm run start
 ```
 
+---
+
+## ☁️ النشر والتشغيل على Cloudflare (Cloudflare Deployment)
+
+النظام مهيأ بالكامل للعمل عبر شبكة **Cloudflare** مع ملف الإعداد `wrangler.toml` المرفق. يمكنك اختيار الطريقة الأنسب لطبيعة عمل المجمع الطبي:
+
+### 🌟 الخيار الأول: النشر عبر Cloudflare Pages (استضافة سحابية كاملة)
+
+1. **ربط المستودع:**
+   - من لوحة تحكم Cloudflare، انتقل إلى **Workers & Pages** ← **Create application** ← **Pages** ← **Connect to Git**.
+   - اختر مستودع النظام: `https://github.com/am21951691-cloud/System`.
+
+2. **إعدادات البناء (Build Settings):**
+   - **Framework preset:** `Next.js`
+   - **Build command:** `npx @opennextjs/cloudflare` أو `npm run build`
+   - **Build output directory:** `.worker-next` (أو `.next`)
+   - **Compatibility date:** `2024-09-23`
+   - **Compatibility flags:** `nodejs_compat`
+
+3. **المتغيرات البيئية (Environment Variables):**
+   - في إعدادات المشروع بـ Cloudflare Pages:
+     - `NODE_ENV`: `production`
+     - `JWT_SECRET`: مفتاح تشفير عشوائي قوي للجلسات (مثال: `openssl rand -hex 32`).
+     - `DATABASE_URL`: رابط قاعدة بيانات سحابية متوافقة مع البيئة السحابية بدون خادم (مثل Neon PostgreSQL أو Supabase أو Turso أو Cloudflare D1).
+
+---
+
+### 🛡️ الخيار الثاني (الأمثل للمجمعات الطبية والمستشفيات): Cloudflare Tunnel (`cloudflared`)
+
+هذا الخيار هو **الأعلى أماناً والأكثر انتشاراً في المنشآت الطبية**، حيث يتيح تشغيل النظام وقاعدة البيانات المحلية على جهاز السيرفر بالمجمع الطبي بأعلى سرعة وأقل تكلفة، مع حمايته برابط عالمي آمن من Cloudflare دون فتح أي منافذ بالراوتر (Port Forwarding):
+
+1. **تشغيل الخادم محلياً أو عبر PM2 / Docker:**
+   ```bash
+   npm run build
+   npm run start
+   ```
+
+2. **تثبيت وربط Cloudflare Tunnel:**
+   ```bash
+   # تثبيت أداة cloudflared
+   winget install Cloudflare.cloudflared
+
+   # تشغيل نفق فوري محمي برابط Cloudflare مجاني
+   cloudflared tunnel --url http://localhost:3000
+   ```
+
+3. **ربطه بنطاقك المخصص (Custom Domain):**
+   - يمكنك ربطه بنطاق مثل `clinic.yourdomain.com` بنقرة واحدة من لوحة **Cloudflare Zero Trust** ← **Access** ← **Tunnels**.
+   - تحصل تلقائياً على حماية DDoS، شهادة SSL عالمية مجانية، وسرعة استجابة فائقة عبر شبكة Cloudflare العالمية مع بقاء سجلات المرضى آمنة على السيرفر الداخلي.
+
