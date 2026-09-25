@@ -7,7 +7,10 @@ import DoctorDecisionForm from '@/components/DoctorDecisionForm'
 export default async function DecisionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const session = await getSession()
-  if (!session) return null
+  if (!session) redirect('/login')
+  if (session.role !== 'doctor' && session.role !== 'admin') {
+    redirect(`/visits/${id}`)
+  }
 
 
   const visit = await prisma.visit.findUnique({

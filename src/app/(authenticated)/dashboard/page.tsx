@@ -374,12 +374,18 @@ export default async function DashboardPage({
                           )}
 
                           {visit.status === 'doctor_review' && (
-                            <Link
-                              href={`/visits/${visit.id}/decision`}
-                              className="btn btn-sm btn-green"
-                            >
-                              ⚖️ اتخاذ القرار
-                            </Link>
+                            (session.role === 'doctor' || session.role === 'admin') ? (
+                              <Link
+                                href={`/visits/${visit.id}/decision`}
+                                className="btn btn-sm btn-green"
+                              >
+                                ⚖️ اتخاذ القرار
+                              </Link>
+                            ) : (
+                              <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                                ⏳ بانتظار الطبيب
+                              </span>
+                            )
                           )}
 
                           {visit.status === 'new' && (

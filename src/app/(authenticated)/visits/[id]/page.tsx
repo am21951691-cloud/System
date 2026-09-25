@@ -209,8 +209,19 @@ export default async function VisitPage({ params }: { params: Promise<{ id: stri
           </>
         )}
         {visit.status === 'doctor_review' && (
-          <Link href={`/visits/${visit.id}/decision`} className="btn btn-green btn-lg" style={{ flex: 1, minWidth: '240px', justifyContent: 'center' }}>
-            ⚖️ إصدار واعتماد القرار النهائي للصرف
+          session.role === 'doctor' || session.role === 'admin' ? (
+            <Link href={`/visits/${visit.id}/decision`} className="btn btn-green btn-lg" style={{ flex: 1, minWidth: '240px', justifyContent: 'center' }}>
+              ⚖️ إصدار واعتماد القرار النهائي للصرف
+            </Link>
+          ) : (
+            <div style={{ flex: 1, padding: '12px 18px', background: 'var(--bg-input)', borderRadius: 'var(--radius)', border: '1px solid var(--border)', textAlign: 'center', color: 'var(--text-secondary)' }}>
+              🩺 الحالة بانتظار اتخاذ القرار النهائي من الطبيب المعتمد
+            </div>
+          )
+        )}
+        {(visit.status === 'approved' || visit.status === 'rejected') && (session.role === 'doctor' || session.role === 'admin') && (
+          <Link href={`/visits/${visit.id}/decision`} className="btn btn-outline" style={{ minWidth: '180px', justifyContent: 'center' }}>
+            ✏️ تعديل القرار النهائي
           </Link>
         )}
       </div>

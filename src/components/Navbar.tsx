@@ -5,6 +5,8 @@ export default async function Navbar() {
   const session = await getSession()
   if (!session) return null
 
+  const isAdmin = session.role === 'admin'
+
   return (
     <nav
       className="navbar-container"
@@ -69,19 +71,37 @@ export default async function Navbar() {
         >
           ➕ مريض جديد
         </Link>
-        <Link
-          href="/admin/audit"
-          className="tab-btn"
-          style={{
-            fontSize: '0.95rem',
-            padding: '8px 16px',
-            minHeight: '44px',
-            color: 'var(--text-secondary)',
-            textDecoration: 'none',
-          }}
-        >
-          📜 السجل
-        </Link>
+
+        {isAdmin && (
+          <>
+            <Link
+              href="/admin/users"
+              className="tab-btn"
+              style={{
+                fontSize: '0.95rem',
+                padding: '8px 16px',
+                minHeight: '44px',
+                color: 'var(--text-secondary)',
+                textDecoration: 'none',
+              }}
+            >
+              👥 المستخدمين
+            </Link>
+            <Link
+              href="/admin/audit"
+              className="tab-btn"
+              style={{
+                fontSize: '0.95rem',
+                padding: '8px 16px',
+                minHeight: '44px',
+                color: 'var(--text-secondary)',
+                textDecoration: 'none',
+              }}
+            >
+              📜 سجل الرقابة
+            </Link>
+          </>
+        )}
 
         <span
           style={{
@@ -92,12 +112,26 @@ export default async function Navbar() {
             minHeight: '44px',
             display: 'inline-flex',
             alignItems: 'center',
+            gap: '6px',
             background: 'rgba(255,255,255,0.06)',
             borderRadius: 'var(--radius-sm)',
             border: '1px solid var(--border)',
           }}
         >
-          👤 {session.name}
+          <span>👤</span>
+          <span>{session.name}</span>
+          <span
+            className={`badge ${
+              session.role === 'admin'
+                ? 'badge-rejected'
+                : session.role === 'doctor'
+                ? 'badge-doctor'
+                : 'badge-approved'
+            }`}
+            style={{ fontSize: '0.72rem', padding: '2px 8px' }}
+          >
+            {session.role === 'admin' ? 'مدير' : session.role === 'doctor' ? 'طبيب' : 'عضو'}
+          </span>
         </span>
 
         <form action="/api/auth/logout" method="POST" style={{ margin: 0 }}>

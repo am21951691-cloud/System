@@ -17,6 +17,8 @@ export default function LoginPage() {
         setError('اسم المستخدم أو كلمة المرور غير صحيحة')
       } else if (err === 'missing_fields') {
         setError('يرجى إدخال اسم المستخدم وكلمة المرور')
+      } else if (err === 'rate_limited') {
+        setError('تم تجاوز عدد محاولات الدخول المسموح بها، يرجى الانتظار 15 دقيقة قبل المحاولة مجدداً.')
       }
     }
   }, [])

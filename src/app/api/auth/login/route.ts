@@ -1,36 +1,11 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { createToken } from '@/lib/auth'
+import { isRateLimited, incrementRateLimit, resetRateLimit } from '@/lib/rate-limit'
 import bcrypt from 'bcryptjs'
 
-// In-memory rate limiting map: key -> { count, resetAt }
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
-
-function checkRateLimit(key: string, maxAttempts = 5, windowMs = 15 * 60 * 1000): boolean {
-  const now = Date.now()
-  const entry = rateLimitMap.get(key)
-
-  if (!entry || now > entry.resetAt) {
-    return false
-  }
-
-  return entry.count >= maxAttempts
-}
-
-function incrementRateLimit(key: string, windowMs = 15 * 60 * 1000) {
-  const now = Date.now()
-  const entry = rateLimitMap.get(key)
-
-  if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(key, { count: 1, resetAt: now + windowMs })
-  } else {
-    entry.count += 1
-  }
-}
-
-function resetRateLimit(key: string) {
-  rateLimitMap.delete(key)
-}
+// Pre-computed dummy bcrypt hash to protect against timing attacks when user does not exist
+const DUMMY_HASH = '$2a$10$abcdefghijklmnopqrstuuABCDEFGHIJKLMNOPQRSTUVWXYZ012'
 
 export async function POST(req: Request) {
   try {
@@ -58,8 +33,8 @@ export async function POST(req: Request) {
     const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
     const rateLimitKey = `${clientIp}_${rawUsername.toLowerCase()}`
 
-    // Brute-force protection: check rate limit
-    if (checkRateLimit(clientIp) || (rawUsername && checkRateLimit(rateLimitKey))) {
+    // Brute-force protection: check rate limit for IP and (IP + username)
+    if (isRateLimited(clientIp, 10) || (rawUsername && isRateLimited(rateLimitKey, 5))) {
       const errorMsg = 'تم تجاوز عدد محاولات الدخول المسموح بها، يرجى الانتظار 15 دقيقة قبل المحاولة مجدداً.'
       if (isJson) {
         return NextResponse.json({ error: errorMsg }, { status: 429 })
@@ -75,7 +50,7 @@ export async function POST(req: Request) {
       return NextResponse.redirect(new URL('/login?error=missing_fields', origin), 303)
     }
 
-    // Lookup user: exact or case-insensitive
+    // Lookup user: exact or case-insensitive match
     const user = await prisma.user.findFirst({
       where: {
         OR: [
@@ -87,6 +62,8 @@ export async function POST(req: Request) {
     })
 
     if (!user || !user.active) {
+      // Run dummy compare to neutralize response-time differences (timing attack defense)
+      await bcrypt.compare(password, DUMMY_HASH).catch(() => false)
       incrementRateLimit(clientIp)
       incrementRateLimit(rateLimitKey)
       const errorMsg = 'اسم المستخدم أو كلمة المرور غير صحيحة'
@@ -107,7 +84,7 @@ export async function POST(req: Request) {
       return NextResponse.redirect(new URL('/login?error=invalid_credentials', origin), 303)
     }
 
-    // Clear failed attempts upon successful login
+    // Clear failed attempt counters upon successful login
     resetRateLimit(clientIp)
     resetRateLimit(rateLimitKey)
 
@@ -128,6 +105,7 @@ export async function POST(req: Request) {
           id: user.id,
           username: user.username,
           name: user.name,
+          role: user.role,
         },
       })
       response.cookies.set('session', token, {
