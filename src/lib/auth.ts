@@ -12,11 +12,15 @@ export interface SessionUser {
   role: string
 }
 
-export async function createSession(user: SessionUser) {
-  const token = await new SignJWT({ ...user })
+export async function createToken(user: SessionUser) {
+  return await new SignJWT({ ...user })
     .setProtectedHeader({ alg: 'HS256' })
     .setExpirationTime('7d')
     .sign(SECRET)
+}
+
+export async function createSession(user: SessionUser) {
+  const token = await createToken(user)
 
   const cookieStore = await cookies()
   cookieStore.set('session', token, {
@@ -26,14 +30,15 @@ export async function createSession(user: SessionUser) {
     maxAge: 60 * 60 * 24 * 7,
     path: '/',
   })
+  return token
 }
 
 export async function getSession(): Promise<SessionUser | null> {
-  const cookieStore = await cookies()
-  const token = cookieStore.get('session')?.value
-  if (!token) return null
-
   try {
+    const cookieStore = await cookies()
+    const token = cookieStore.get('session')?.value
+    if (!token) return null
+
     const { payload } = await jwtVerify(token, SECRET)
     return payload as unknown as SessionUser
   } catch {
@@ -42,6 +47,9 @@ export async function getSession(): Promise<SessionUser | null> {
 }
 
 export async function deleteSession() {
-  const cookieStore = await cookies()
-  cookieStore.delete('session')
+  try {
+    const cookieStore = await cookies()
+    cookieStore.delete('session')
+  } catch {}
 }
+

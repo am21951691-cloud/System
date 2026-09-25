@@ -6,14 +6,23 @@ import bcrypt from 'bcryptjs'
 import { redirect } from 'next/navigation'
 
 export async function loginAction(formData: FormData) {
-  const username = formData.get('username') as string
+  const rawUsername = formData.get('username') as string
   const password = formData.get('password') as string
 
-  if (!username || !password) {
+  if (!rawUsername || !password) {
     return { error: 'يرجى إدخال اسم المستخدم وكلمة المرور' }
   }
 
-  const user = await prisma.user.findUnique({ where: { username } })
+  const username = rawUsername.trim()
+  const user = await prisma.user.findFirst({
+    where: {
+      OR: [
+        { username: username },
+        { username: username.toLowerCase() },
+        { username: username.toUpperCase() },
+      ],
+    },
+  })
 
   if (!user || !user.active) {
     return { error: 'اسم المستخدم أو كلمة المرور غير صحيحة' }

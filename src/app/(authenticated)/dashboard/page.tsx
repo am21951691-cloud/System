@@ -16,10 +16,11 @@ export default async function DashboardPage({
   const resolvedParams = searchParams ? await searchParams : {}
   const query = resolvedParams.q?.trim() || ''
   const activeStatus = resolvedParams.status || 'all'
+  const isPatientsView = activeStatus === 'patients'
 
   // Build filter for visits
   const visitFilter: any = {}
-  if (activeStatus !== 'all') {
+  if (activeStatus !== 'all' && !isPatientsView) {
     visitFilter.status = activeStatus
   }
 
@@ -32,6 +33,7 @@ export default async function DashboardPage({
     rejectedCount,
     newCount,
     visits,
+    patientsList,
     searchResults,
   ] = await Promise.all([
     prisma.patient.count(),
@@ -41,15 +43,30 @@ export default async function DashboardPage({
     prisma.visit.count({ where: { status: 'approved' } }),
     prisma.visit.count({ where: { status: 'rejected' } }),
     prisma.visit.count({ where: { status: 'new' } }),
-    prisma.visit.findMany({
-      where: visitFilter,
-      take: 25,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        patient: true,
-        finalDecision: true,
-      },
-    }),
+    !isPatientsView
+      ? prisma.visit.findMany({
+          where: visitFilter,
+          take: 50,
+          orderBy: { createdAt: 'desc' },
+          include: {
+            patient: true,
+            finalDecision: true,
+          },
+        })
+      : Promise.resolve([]),
+    isPatientsView
+      ? prisma.patient.findMany({
+          take: 50,
+          orderBy: { createdAt: 'desc' },
+          include: {
+            visits: {
+              select: { id: true, status: true, specialty: true, createdAt: true },
+              orderBy: { createdAt: 'desc' },
+              take: 1,
+            },
+          },
+        })
+      : Promise.resolve([]),
     query
       ? prisma.patient.findMany({
           where: {
@@ -76,14 +93,14 @@ export default async function DashboardPage({
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
           <Link href="/patients/new" className="btn btn-primary">
-            ➕ إضافة مريض جديد
+            ➕ إضافة مريض جديد وروشتة
           </Link>
         </div>
       </div>
 
       {/* Interactive Stats Cards */}
       <div className="grid-4" style={{ marginBottom: '24px' }}>
-        <Link href="/dashboard?status=all" style={{ textDecoration: 'none' }}>
+        <Link href="/dashboard?status=patients" style={{ textDecoration: 'none' }}>
           <StatsCard title="إجمالي المرضى" count={totalPatients} color="var(--primary)" />
         </Link>
         <Link href="/dashboard?status=committee_review" style={{ textDecoration: 'none' }}>
@@ -173,9 +190,13 @@ export default async function DashboardPage({
       {/* Cases Workspace with Filter Tabs */}
       <div className="card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
-          <h2 style={{ fontSize: '1.1rem' }}>📋 جدول متابعة الحالات والقرارات</h2>
+          <h2 style={{ fontSize: '1.1rem' }}>
+            {isPatientsView ? '👥 سجل المرضى المسجلين' : '📋 جدول متابعة الحالات والقرارات'}
+          </h2>
           <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-            إجمالي المعروض: {visits.length} حالة
+            {isPatientsView
+              ? `إجمالي المسجلين: ${patientsList.length} مريض`
+              : `إجمالي المعروض: ${visits.length} حالة`}
           </span>
         </div>
 
@@ -185,7 +206,13 @@ export default async function DashboardPage({
             href={`/dashboard?status=all${query ? `&q=${query}` : ''}`}
             className={`tab-btn ${activeStatus === 'all' ? 'active' : ''}`}
           >
-            🌟 الكل ({totalVisits})
+            🌟 كل الحالات ({totalVisits})
+          </Link>
+          <Link
+            href={`/dashboard?status=patients${query ? `&q=${query}` : ''}`}
+            className={`tab-btn ${activeStatus === 'patients' ? 'active' : ''}`}
+          >
+            👥 المرضى المسجلين ({totalPatients})
           </Link>
           <Link
             href={`/dashboard?status=committee_review${query ? `&q=${query}` : ''}`}
@@ -215,115 +242,189 @@ export default async function DashboardPage({
             href={`/dashboard?status=new${query ? `&q=${query}` : ''}`}
             className={`tab-btn ${activeStatus === 'new' ? 'active' : ''}`}
           >
-            🆕 جديدة ({newCount})
+            🆕 مسودة / جديدة ({newCount})
           </Link>
         </div>
 
-        {visits.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '32px', color: 'var(--text-secondary)' }}>
-            <p>لا توجد حالات مسجلة في هذا القسم حالياً.</p>
-          </div>
-        ) : (
-          <div className="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>المريض</th>
-                  <th>رقم الملف</th>
-                  <th>التخصص</th>
-                  <th>الحالة</th>
-                  <th>التاريخ</th>
-                  <th>نوع القرار</th>
-                  <th>إجراء مباشر</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visits.map((visit) => (
-                  <tr key={visit.id}>
-                    <td style={{ fontWeight: 600 }}>
-                      <Link href={`/patients/${visit.patient.id}`} style={{ color: 'inherit' }}>
-                        {visit.patient.fullName}
-                      </Link>
-                    </td>
-                    <td style={{ fontFamily: 'monospace', color: 'var(--text-secondary)' }}>
-                      {visit.patient.patientId}
-                    </td>
-                    <td>{visit.specialty}</td>
-                    <td><StatusBadge status={visit.status} /></td>
-                    <td style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
-                      {new Date(visit.createdAt).toLocaleDateString('ar-EG')}
-                    </td>
-                    <td>
-                      {visit.finalDecision ? (
-                        <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>
-                          {visit.finalDecision.decisionType === 'charity' ? '🟢 كفالة / صدقة' :
-                           visit.finalDecision.decisionType === 'paid' ? '🔵 بمقابل مالي' : '🔴 رفض الصرف'}
-                        </span>
-                      ) : (
-                        <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>قيد المعالجة</span>
-                      )}
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                        {/* Direct Workflow Buttons */}
-                        {visit.status === 'committee_review' && (
-                          <Link
-                            href={`/visits/${visit.id}/committee`}
-                            className="btn btn-yellow"
-                            style={{ padding: '4px 10px', fontSize: '0.75rem', fontWeight: 700 }}
-                          >
-                            ✍️ إبداء الرأي
-                          </Link>
-                        )}
-
-                        {visit.status === 'doctor_review' && (
-                          <Link
-                            href={`/visits/${visit.id}/decision`}
-                            className="btn btn-green"
-                            style={{ padding: '4px 10px', fontSize: '0.75rem', fontWeight: 700 }}
-                          >
-                            ⚖️ اتخاذ القرار
-                          </Link>
-                        )}
-
-                        {visit.status === 'new' && (
-                          <form action={async () => { 'use server'; await sendToCommittee(visit.id) }}>
-                            <button
-                              type="submit"
+        {/* VIEW 1: PATIENTS LIST VIEW */}
+        {isPatientsView ? (
+          patientsList.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '32px', color: 'var(--text-secondary)' }}>
+              <p>لا يوجد مرضى مسجلين حتى الآن.</p>
+              <Link href="/patients/new" className="btn btn-primary" style={{ marginTop: '12px' }}>
+                ➕ تسجيل مريض جديد
+              </Link>
+            </div>
+          ) : (
+            <div className="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>رقم الملف</th>
+                    <th>الاسم بالكامل</th>
+                    <th>الهاتف</th>
+                    <th>المدينة / المحافظة</th>
+                    <th>الحالة المادية</th>
+                    <th>تاريخ التسجيل</th>
+                    <th>آخر حالة</th>
+                    <th>إجراء</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {patientsList.map((p) => {
+                    const latestVisit = p.visits[0]
+                    return (
+                      <tr key={p.id}>
+                        <td style={{ fontWeight: 700, color: 'var(--primary)', fontFamily: 'monospace' }}>
+                          {p.patientId}
+                        </td>
+                        <td style={{ fontWeight: 600 }}>{p.fullName}</td>
+                        <td>{p.phone || '—'}</td>
+                        <td>{p.city || p.governorate || '—'}</td>
+                        <td>{p.financialStatus || '—'}</td>
+                        <td style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+                          {new Date(p.createdAt).toLocaleDateString('ar-EG')}
+                        </td>
+                        <td>
+                          {latestVisit ? (
+                            <StatusBadge status={latestVisit.status} />
+                          ) : (
+                            <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>بدون زيارات</span>
+                          )}
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            <Link
+                              href={`/patients/${p.id}`}
+                              className="btn btn-primary"
+                              style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                            >
+                              📋 الملف
+                            </Link>
+                            <Link
+                              href={`/patients/${p.id}/visits/new`}
                               className="btn btn-outline"
                               style={{ padding: '4px 10px', fontSize: '0.75rem' }}
                             >
-                              📤 للجنة
-                            </button>
-                          </form>
-                        )}
-
-                        {(visit.status === 'approved' || visit.status === 'rejected') && (
-                          <Link
-                            href={`/visits/${visit.id}/print`}
-                            target="_blank"
-                            className="btn btn-outline"
-                            style={{ padding: '4px 10px', fontSize: '0.75rem' }}
-                          >
-                            🖨️ التقرير
-                          </Link>
-                        )}
-
-                        <Link
-                          href={`/visits/${visit.id}`}
-                          className="btn btn-outline"
-                          style={{ padding: '4px 8px', fontSize: '0.75rem' }}
-                          title="عرض كل التفاصيل"
-                        >
-                          👁️
-                        </Link>
-                      </div>
-                    </td>
+                              ➕ زيارة جديدة
+                            </Link>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )
+        ) : (
+          /* VIEW 2: VISITS AND DECISIONS VIEW */
+          visits.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '32px', color: 'var(--text-secondary)' }}>
+              <p>لا توجد حالات مسجلة في هذا القسم حالياً.</p>
+            </div>
+          ) : (
+            <div className="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>المريض</th>
+                    <th>رقم الملف</th>
+                    <th>التخصص</th>
+                    <th>الحالة</th>
+                    <th>التاريخ</th>
+                    <th>نوع القرار</th>
+                    <th>إجراء مباشر</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {visits.map((visit) => (
+                    <tr key={visit.id}>
+                      <td style={{ fontWeight: 600 }}>
+                        <Link href={`/patients/${visit.patient.id}`} style={{ color: 'inherit' }}>
+                          {visit.patient.fullName}
+                        </Link>
+                      </td>
+                      <td style={{ fontFamily: 'monospace', color: 'var(--text-secondary)' }}>
+                        {visit.patient.patientId}
+                      </td>
+                      <td>{visit.specialty}</td>
+                      <td><StatusBadge status={visit.status} /></td>
+                      <td style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+                        {new Date(visit.createdAt).toLocaleDateString('ar-EG')}
+                      </td>
+                      <td>
+                        {visit.finalDecision ? (
+                          <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                            {visit.finalDecision.decisionType === 'charity' ? '🟢 كفالة / صدقة' :
+                             visit.finalDecision.decisionType === 'paid' ? '🔵 بمقابل مالي' : '🔴 رفض الصرف'}
+                          </span>
+                        ) : (
+                          <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>قيد المعالجة</span>
+                        )}
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                          {/* Direct Workflow Buttons */}
+                          {visit.status === 'committee_review' && (
+                            <Link
+                              href={`/visits/${visit.id}/committee`}
+                              className="btn btn-yellow"
+                              style={{ padding: '4px 10px', fontSize: '0.75rem', fontWeight: 700 }}
+                            >
+                              ✍️ إبداء الرأي
+                            </Link>
+                          )}
+
+                          {visit.status === 'doctor_review' && (
+                            <Link
+                              href={`/visits/${visit.id}/decision`}
+                              className="btn btn-green"
+                              style={{ padding: '4px 10px', fontSize: '0.75rem', fontWeight: 700 }}
+                            >
+                              ⚖️ اتخاذ القرار
+                            </Link>
+                          )}
+
+                          {visit.status === 'new' && (
+                            <form action={async () => { 'use server'; await sendToCommittee(visit.id) }}>
+                              <button
+                                type="submit"
+                                className="btn btn-outline"
+                                style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                              >
+                                📤 للجنة
+                              </button>
+                            </form>
+                          )}
+
+                          {(visit.status === 'approved' || visit.status === 'rejected') && (
+                            <Link
+                              href={`/visits/${visit.id}/print`}
+                              target="_blank"
+                              className="btn btn-outline"
+                              style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                            >
+                              🖨️ التقرير
+                            </Link>
+                          )}
+
+                          <Link
+                            href={`/visits/${visit.id}`}
+                            className="btn btn-outline"
+                            style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                            title="عرض كل التفاصيل"
+                          >
+                            👁️
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )
         )}
       </div>
     </>
