@@ -3,6 +3,35 @@ import { prisma } from '@/lib/db'
 import { createToken } from '@/lib/auth'
 import bcrypt from 'bcryptjs'
 
+// In-memory rate limiting map: key -> { count, resetAt }
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
+
+function checkRateLimit(key: string, maxAttempts = 5, windowMs = 15 * 60 * 1000): boolean {
+  const now = Date.now()
+  const entry = rateLimitMap.get(key)
+
+  if (!entry || now > entry.resetAt) {
+    return false
+  }
+
+  return entry.count >= maxAttempts
+}
+
+function incrementRateLimit(key: string, windowMs = 15 * 60 * 1000) {
+  const now = Date.now()
+  const entry = rateLimitMap.get(key)
+
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(key, { count: 1, resetAt: now + windowMs })
+  } else {
+    entry.count += 1
+  }
+}
+
+function resetRateLimit(key: string) {
+  rateLimitMap.delete(key)
+}
+
 export async function POST(req: Request) {
   try {
     const contentType = req.headers.get('content-type') || ''
@@ -26,6 +55,18 @@ export async function POST(req: Request) {
     const proto = req.headers.get('x-forwarded-proto') || 'http'
     const origin = `${proto}://${host}`
 
+    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+    const rateLimitKey = `${clientIp}_${rawUsername.toLowerCase()}`
+
+    // Brute-force protection: check rate limit
+    if (checkRateLimit(clientIp) || (rawUsername && checkRateLimit(rateLimitKey))) {
+      const errorMsg = 'تم تجاوز عدد محاولات الدخول المسموح بها، يرجى الانتظار 15 دقيقة قبل المحاولة مجدداً.'
+      if (isJson) {
+        return NextResponse.json({ error: errorMsg }, { status: 429 })
+      }
+      return NextResponse.redirect(new URL('/login?error=rate_limited', origin), 303)
+    }
+
     if (!rawUsername || !password) {
       const errorMsg = 'يرجى إدخال اسم المستخدم وكلمة المرور'
       if (isJson) {
@@ -46,6 +87,8 @@ export async function POST(req: Request) {
     })
 
     if (!user || !user.active) {
+      incrementRateLimit(clientIp)
+      incrementRateLimit(rateLimitKey)
       const errorMsg = 'اسم المستخدم أو كلمة المرور غير صحيحة'
       if (isJson) {
         return NextResponse.json({ error: errorMsg }, { status: 401 })
@@ -55,6 +98,8 @@ export async function POST(req: Request) {
 
     const valid = await bcrypt.compare(password, user.password)
     if (!valid) {
+      incrementRateLimit(clientIp)
+      incrementRateLimit(rateLimitKey)
       const errorMsg = 'اسم المستخدم أو كلمة المرور غير صحيحة'
       if (isJson) {
         return NextResponse.json({ error: errorMsg }, { status: 401 })
@@ -62,12 +107,18 @@ export async function POST(req: Request) {
       return NextResponse.redirect(new URL('/login?error=invalid_credentials', origin), 303)
     }
 
+    // Clear failed attempts upon successful login
+    resetRateLimit(clientIp)
+    resetRateLimit(rateLimitKey)
+
     const token = await createToken({
       userId: user.id,
       username: user.username,
       name: user.name,
       role: user.role,
     })
+
+    const isProd = process.env.NODE_ENV === 'production'
 
     if (isJson) {
       const response = NextResponse.json({
@@ -81,7 +132,7 @@ export async function POST(req: Request) {
       })
       response.cookies.set('session', token, {
         httpOnly: true,
-        secure: false,
+        secure: isProd,
         sameSite: 'lax',
         maxAge: 60 * 60 * 24 * 7,
         path: '/',
@@ -92,7 +143,7 @@ export async function POST(req: Request) {
       const response = NextResponse.redirect(redirectUrl, 303)
       response.cookies.set('session', token, {
         httpOnly: true,
-        secure: false,
+        secure: isProd,
         sameSite: 'lax',
         maxAge: 60 * 60 * 24 * 7,
         path: '/',

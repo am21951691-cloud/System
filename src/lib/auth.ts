@@ -19,13 +19,18 @@ export async function createToken(user: SessionUser) {
     .sign(SECRET)
 }
 
+const isProd = process.env.NODE_ENV === 'production'
+if (isProd && !process.env.JWT_SECRET) {
+  console.warn('⚠️ SECURITY WARNING: JWT_SECRET environment variable is not set in production! Using fallback.')
+}
+
 export async function createSession(user: SessionUser) {
   const token = await createToken(user)
 
   const cookieStore = await cookies()
   cookieStore.set('session', token, {
     httpOnly: true,
-    secure: false,
+    secure: isProd,
     sameSite: 'lax',
     maxAge: 60 * 60 * 24 * 7,
     path: '/',

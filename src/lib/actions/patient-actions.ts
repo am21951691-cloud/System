@@ -5,9 +5,20 @@ import { getSession } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
 import { redirect } from 'next/navigation'
 
+function sanitizeInput(val: unknown, maxLen = 255): string | null {
+  if (val === null || val === undefined) return null
+  const str = String(val).trim().replace(/\0/g, '')
+  return str.length > 0 ? str.slice(0, maxLen) : null
+}
+
 export async function createPatient(formData: FormData) {
   const session = await getSession()
   if (!session) redirect('/login')
+
+  const fullName = sanitizeInput(formData.get('fullName'), 150)
+  if (!fullName) {
+    throw new Error('اسم المريض مطلوب')
+  }
 
   // Generate next PAT-XXXXXX
   const lastPatient = await prisma.patient.findFirst({
@@ -16,25 +27,20 @@ export async function createPatient(formData: FormData) {
   const nextNum = (lastPatient?.id || 0) + 1
   const patientId = `PAT-${String(nextNum).padStart(6, '0')}`
 
-  const fullName = (formData.get('fullName') as string)?.trim()
-  if (!fullName) {
-    throw new Error('اسم المريض مطلوب')
-  }
-
   // 1. Create Patient
   const patient = await prisma.patient.create({
     data: {
       patientId,
       fullName,
-      birthDate: (formData.get('birthDate') as string)?.trim() || null,
-      gender: (formData.get('gender') as string)?.trim() || null,
-      governorate: (formData.get('governorate') as string)?.trim() || null,
-      city: (formData.get('city') as string)?.trim() || null,
-      phone: (formData.get('phone') as string)?.trim() || null,
-      address: (formData.get('address') as string)?.trim() || null,
-      maritalStatus: (formData.get('maritalStatus') as string)?.trim() || null,
-      financialStatus: (formData.get('financialStatus') as string)?.trim() || null,
-      notes: (formData.get('notes') as string)?.trim() || null,
+      birthDate: sanitizeInput(formData.get('birthDate'), 50),
+      gender: sanitizeInput(formData.get('gender'), 20),
+      governorate: sanitizeInput(formData.get('governorate'), 50),
+      city: sanitizeInput(formData.get('city'), 50),
+      phone: sanitizeInput(formData.get('phone'), 30),
+      address: sanitizeInput(formData.get('address'), 500),
+      maritalStatus: sanitizeInput(formData.get('maritalStatus'), 30),
+      financialStatus: sanitizeInput(formData.get('financialStatus'), 30),
+      notes: sanitizeInput(formData.get('notes'), 1000),
     },
   })
 
@@ -47,12 +53,13 @@ export async function createPatient(formData: FormData) {
   )
 
   // 2. Create Initial Visit & Prescription
-  const specialty = (formData.get('specialty') as string)?.trim() || 'باطنة'
-  const description = (formData.get('description') as string)?.trim() || null
-  const generalCondition = (formData.get('generalCondition') as string)?.trim() || null
-  const diagnosis = (formData.get('diagnosis') as string)?.trim() || null
-  const visitNotes = (formData.get('visitNotes') as string)?.trim() || null
-  const targetStatus = (formData.get('targetStatus') as string) || 'committee_review'
+  const specialty = sanitizeInput(formData.get('specialty'), 50) || 'باطنة'
+  const description = sanitizeInput(formData.get('description'), 1000)
+  const generalCondition = sanitizeInput(formData.get('generalCondition'), 255)
+  const diagnosis = sanitizeInput(formData.get('diagnosis'), 500)
+  const visitNotes = sanitizeInput(formData.get('visitNotes'), 1000)
+  const rawStatus = sanitizeInput(formData.get('targetStatus'), 30)
+  const targetStatus = rawStatus === 'new' ? 'new' : 'committee_review'
 
   const visit = await prisma.visit.create({
     data: {
@@ -71,19 +78,19 @@ export async function createPatient(formData: FormData) {
   let medsCount = 0
 
   for (let i = 0; i < medNames.length; i++) {
-    const name = String(medNames[i] || '').trim()
+    const name = sanitizeInput(medNames[i], 150)
     if (!name) continue
 
     await prisma.medication.create({
       data: {
         visitId: visit.id,
         name,
-        concentration: (formData.getAll('medConcentration')[i] as string)?.trim() || null,
-        dosage: (formData.getAll('medDosage')[i] as string)?.trim() || null,
-        frequency: (formData.getAll('medFrequency')[i] as string)?.trim() || null,
-        duration: (formData.getAll('medDuration')[i] as string)?.trim() || null,
-        usageMethod: (formData.getAll('medUsage')[i] as string)?.trim() || null,
-        quantity: (formData.getAll('medQuantity')[i] as string)?.trim() || null,
+        concentration: sanitizeInput(formData.getAll('medConcentration')[i], 50),
+        dosage: sanitizeInput(formData.getAll('medDosage')[i], 50),
+        frequency: sanitizeInput(formData.getAll('medFrequency')[i], 100),
+        duration: sanitizeInput(formData.getAll('medDuration')[i], 100),
+        usageMethod: sanitizeInput(formData.getAll('medUsage')[i], 150),
+        quantity: sanitizeInput(formData.getAll('medQuantity')[i], 150),
       },
     })
     medsCount++

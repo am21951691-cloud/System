@@ -9,7 +9,11 @@ export async function submitFinalDecision(visitId: number, formData: FormData) {
   const session = await getSession()
   if (!session) redirect('/login')
 
-  const decisionType = formData.get('decisionType') as string
+  const decisionType = String(formData.get('decisionType') || '').trim()
+  const allowedDecisions = ['charity', 'paid', 'denied']
+  if (!allowedDecisions.includes(decisionType)) {
+    throw new Error('نوع القرار غير صالح')
+  }
 
   await prisma.finalDecision.create({
     data: {

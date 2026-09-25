@@ -9,12 +9,21 @@ export async function submitCommitteeReview(visitId: number, formData: FormData)
   const session = await getSession()
   if (!session) redirect('/login')
 
+  const decision = String(formData.get('decision') || '').trim()
+  const allowedDecisions = ['approved', 'rejected', 'needs_info']
+  if (!allowedDecisions.includes(decision)) {
+    throw new Error('رأي اللجنة غير صالح')
+  }
+
+  const notesRaw = formData.get('notes')
+  const notes = notesRaw ? String(notesRaw).trim().slice(0, 1000) : null
+
   const review = await prisma.committeeReview.create({
     data: {
       visitId,
       userId: session.userId,
-      decision: formData.get('decision') as string,
-      notes: (formData.get('notes') as string) || null,
+      decision,
+      notes: notes || null,
     },
   })
 
