@@ -42,3 +42,10 @@ next-env.d.ts
 *.db-journal
 *.sqlite
 *.sqlite3
+
+# Cloudflare OpenNext & Wrangler
+.open-next
+.wrangler
+.dev.vars*
+!.dev.vars.example
+
