@@ -24,6 +24,10 @@ export default async function VisitPrintPage({ params }: { params: Promise<{ id:
 
   if (!visit) return notFound()
 
+  // Confidentiality: Only doctor and admin can see all members' opinions
+  const canSeeAllReviews = session.role === 'doctor' || session.role === 'admin'
+  const myReview = visit.committeeReviews.find((r) => r.userId === session.userId)
+
   return (
     <div>
       {/* Top Toolbar (Hidden on Print) */}
@@ -94,67 +98,116 @@ export default async function VisitPrintPage({ params }: { params: Promise<{ id:
           )}
         </div>
 
-        {/* Prescription Table */}
-        <div style={{ marginBottom: '20px' }}>
-          <h3 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '8px', color: '#1f2937' }}>
-            💊 الروشتة الطبية المعتمدة
-          </h3>
-          <table>
-            <thead>
-              <tr>
-                <th>م</th>
-                <th>اسم الدواء والتركيز</th>
-                <th>الجرعة والتكرار</th>
-                <th>مدة العلاج</th>
-                <th>طريقة الاستخدام</th>
-                <th>الكمية المقررة</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visit.medications.map((m, idx) => (
-                <tr key={m.id}>
-                  <td>{idx + 1}</td>
-                  <td style={{ fontWeight: 600 }}>{m.name} {m.concentration || ''}</td>
-                  <td>{[m.dosage, m.frequency].filter(Boolean).join(' • ') || '—'}</td>
-                  <td>{m.duration || '—'}</td>
-                  <td>{m.usageMethod || '—'}</td>
-                  <td style={{ fontWeight: 600 }}>{m.quantity || '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {/* Uploaded Prescription Image (if attached) */}
+        {visit.prescriptionImage && (
+          <div style={{ marginBottom: '20px', pageBreakInside: 'avoid' }}>
+            <h3 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '8px', color: '#1f2937' }}>
+              📷 صورة الروشتة المرفقة بالحالة
+            </h3>
+            <div style={{ border: '1px solid #e5e7eb', borderRadius: '6px', padding: '10px', textAlign: 'center', background: '#f9fafb' }}>
+              <img
+                src={visit.prescriptionImage}
+                alt="صورة الروشتة الأصلية"
+                style={{ maxHeight: '350px', maxWidth: '100%', objectFit: 'contain', margin: '0 auto', display: 'block', borderRadius: '4px' }}
+              />
+            </div>
+          </div>
+        )}
 
-        {/* Committee Opinions Summary */}
-        {visit.committeeReviews.length > 0 && (
+        {/* Prescription Table */}
+        {visit.medications.length > 0 && (
           <div style={{ marginBottom: '20px' }}>
             <h3 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '8px', color: '#1f2937' }}>
-              👥 توصيات ومراجعات أعضاء اللجنة الطبية
+              💊 الأدوية المفرغة بالروشتة الطبية
             </h3>
             <table>
               <thead>
                 <tr>
-                  <th>عضو اللجنة</th>
-                  <th>الرأي والتوصية</th>
-                  <th>الملاحظات</th>
-                  <th>التاريخ والوقت</th>
+                  <th>م</th>
+                  <th>اسم الدواء والتركيز</th>
+                  <th>الجرعة والتكرار</th>
+                  <th>مدة العلاج</th>
+                  <th>طريقة الاستخدام</th>
+                  <th>الكمية المقررة</th>
                 </tr>
               </thead>
               <tbody>
-                {visit.committeeReviews.map((r) => (
-                  <tr key={r.id}>
-                    <td style={{ fontWeight: 600 }}>{r.user.name}</td>
-                    <td>
-                      {r.decision === 'approved' ? '🟢 موافق على الصرف' :
-                       r.decision === 'rejected' ? '🔴 غير موافق' : '🟡 يحتاج معلومات إضافية'}
-                    </td>
-                    <td>{r.notes || '—'}</td>
-                    <td style={{ fontSize: '0.8rem' }}>{new Date(r.createdAt).toLocaleString('ar-EG')}</td>
+                {visit.medications.map((m, idx) => (
+                  <tr key={m.id}>
+                    <td>{idx + 1}</td>
+                    <td style={{ fontWeight: 600 }}>{m.name} {m.concentration || ''}</td>
+                    <td>{[m.dosage, m.frequency].filter(Boolean).join(' • ') || '—'}</td>
+                    <td>{m.duration || '—'}</td>
+                    <td>{m.usageMethod || '—'}</td>
+                    <td style={{ fontWeight: 600 }}>{m.quantity || '—'}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+        )}
+
+        {/* Committee Opinions Summary (Confidentiality: Only doctor & admin see all reviews) */}
+        {canSeeAllReviews ? (
+          visit.committeeReviews.length > 0 && (
+            <div style={{ marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '8px', color: '#1f2937' }}>
+                👥 توصيات ومراجعات أعضاء اللجنة الطبية
+              </h3>
+              <table>
+                <thead>
+                  <tr>
+                    <th>عضو اللجنة</th>
+                    <th>الرأي والتوصية</th>
+                    <th>الملاحظات</th>
+                    <th>التاريخ والوقت</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visit.committeeReviews.map((r) => (
+                    <tr key={r.id}>
+                      <td style={{ fontWeight: 600 }}>{r.user.name}</td>
+                      <td>
+                        {r.decision === 'approved' ? '🟢 موافق على الصرف' :
+                         r.decision === 'rejected' ? '🔴 غير موافق' : '🟡 يحتاج معلومات إضافية'}
+                      </td>
+                      <td>{r.notes || '—'}</td>
+                      <td style={{ fontSize: '0.8rem' }}>{new Date(r.createdAt).toLocaleString('ar-EG')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )
+        ) : (
+          myReview && (
+            <div style={{ marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '8px', color: '#1f2937' }}>
+                👥 رأيك كعضو في اللجنة الطبية
+              </h3>
+              <table>
+                <thead>
+                  <tr>
+                    <th>عضو اللجنة</th>
+                    <th>الرأي والتوصية</th>
+                    <th>الملاحظات</th>
+                    <th>التاريخ والوقت</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style={{ fontWeight: 600 }}>{myReview.user.name}</td>
+                    <td>
+                      {myReview.decision === 'approved' ? '🟢 موافق على الصرف' :
+                       myReview.decision === 'rejected' ? '🔴 غير موافق' : '🟡 يحتاج معلومات إضافية'}
+                    </td>
+                    <td>{myReview.notes || '—'}</td>
+                    <td style={{ fontSize: '0.8rem' }}>{new Date(myReview.createdAt).toLocaleString('ar-EG')}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          )
         )}
 
         {/* Final Decision Box */}

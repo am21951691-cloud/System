@@ -48,6 +48,7 @@ model Visit {
   generalCondition String?
   diagnosis   String?
   notes       String?
+  prescriptionImage String?
   status      String   @default("new")
   createdAt   DateTime @default(now())
 

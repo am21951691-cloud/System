@@ -20,6 +20,8 @@ export async function createVisit(patientId: number, formData: FormData) {
   const generalCondition = sanitizeInput(formData.get('generalCondition'), 255)
   const diagnosis = sanitizeInput(formData.get('diagnosis'), 500)
   const notes = sanitizeInput(formData.get('notes'), 1000)
+  const rawImage = formData.get('prescriptionImage')
+  const prescriptionImage = typeof rawImage === 'string' && rawImage.startsWith('data:image/') ? rawImage : null
 
   const visit = await prisma.visit.create({
     data: {
@@ -29,6 +31,7 @@ export async function createVisit(patientId: number, formData: FormData) {
       generalCondition,
       diagnosis,
       notes,
+      prescriptionImage,
     },
   })
 

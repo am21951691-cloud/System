@@ -18,21 +18,39 @@ export async function submitCommitteeReview(visitId: number, formData: FormData)
   const notesRaw = formData.get('notes')
   const notes = notesRaw ? String(notesRaw).trim().slice(0, 1000) : null
 
-  const review = await prisma.committeeReview.create({
-    data: {
-      visitId,
-      userId: session.userId,
-      decision,
-      notes: notes || null,
-    },
+  // Check if this member has already submitted a review for this visit
+  const existing = await prisma.committeeReview.findFirst({
+    where: { visitId, userId: session.userId },
   })
+
+  let reviewId: number
+  if (existing) {
+    const updated = await prisma.committeeReview.update({
+      where: { id: existing.id },
+      data: {
+        decision,
+        notes: notes || null,
+      },
+    })
+    reviewId = updated.id
+  } else {
+    const created = await prisma.committeeReview.create({
+      data: {
+        visitId,
+        userId: session.userId,
+        decision,
+        notes: notes || null,
+      },
+    })
+    reviewId = created.id
+  }
 
   await logAudit(
     session.userId,
-    'إضافة رأي اللجنة',
-    `عضو اللجنة ${session.name} أضاف رأيه - ${formData.get('decision')}`,
+    existing ? 'تعديل رأي اللجنة' : 'إضافة رأي اللجنة',
+    `عضو اللجنة ${session.name} ${existing ? 'عدّل' : 'سجل'} رأيه - ${decision === 'approved' ? 'موافق' : decision === 'rejected' ? 'رافض' : 'يحتاج معلومات'}`,
     'committee_review',
-    review.id
+    reviewId
   )
 
   redirect(`/visits/${visitId}`)

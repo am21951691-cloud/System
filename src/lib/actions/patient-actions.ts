@@ -61,6 +61,9 @@ export async function createPatient(formData: FormData) {
   const rawStatus = sanitizeInput(formData.get('targetStatus'), 30)
   const targetStatus = rawStatus === 'new' ? 'new' : 'committee_review'
 
+  const rawImage = formData.get('prescriptionImage')
+  const prescriptionImage = typeof rawImage === 'string' && rawImage.startsWith('data:image/') ? rawImage : null
+
   const visit = await prisma.visit.create({
     data: {
       patientId: patient.id,
@@ -69,6 +72,7 @@ export async function createPatient(formData: FormData) {
       generalCondition,
       diagnosis,
       notes: visitNotes,
+      prescriptionImage,
       status: targetStatus,
     },
   })
