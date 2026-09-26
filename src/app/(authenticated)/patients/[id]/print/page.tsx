@@ -30,16 +30,16 @@ export default async function PatientHistoryPrintPage({ params }: { params: Prom
   return (
     <div>
       {/* Top Toolbar (Hidden on Print) */}
-      <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ display: 'flex', gap: '10px' }}>
+      <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', padding: '12px 16px', background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <PrintTriggerButton />
           <Link href={`/patients/${patient.id}`} className="btn btn-outline">
             ← رجوع لملف المريض
           </Link>
         </div>
-        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-          ملف التاريخ الطبي الكامل للمريض جاهز للطباعة أو التصدير كـ PDF.
-        </span>
+        <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span>💡 نصيحة: لحفظ ملف التاريخ الطبي كاملاً بصور الروشتات كـ PDF، اضغط "طباعة / حفظ كـ PDF" واختر (Save as PDF) مع التأكد من تفعيل "رسومات الخلفية" (Background Graphics).</span>
+        </div>
       </div>
 
       {/* Official Medical Dossier Paper */}
@@ -120,6 +120,27 @@ export default async function PatientHistoryPrintPage({ params }: { params: Prom
                   {v.generalCondition && <div><strong>الحالة العامة:</strong> {v.generalCondition}</div>}
                   {v.description && <div><strong>الوصف:</strong> {v.description}</div>}
                 </div>
+
+                {/* Prescription Image (if attached) */}
+                {v.prescriptionImage && (
+                  <div className="prescription-print-box" style={{ margin: '12px 0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                      <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#1f2937' }}>
+                        📷 صورة الروشتة الطبية المرفقة بالحالة
+                      </span>
+                      <span style={{ fontSize: '0.72rem', color: '#6b7280' }}>مستند أصلي</span>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <img
+                        src={v.prescriptionImage}
+                        alt="صورة الروشتة المرفقة"
+                        className="prescription-print-img"
+                        style={{ maxHeight: '380px' }}
+                        loading="eager"
+                      />
+                    </div>
+                  </div>
+                )}
 
                 {/* Medications Table */}
                 {v.medications.length > 0 && (

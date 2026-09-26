@@ -31,16 +31,16 @@ export default async function VisitPrintPage({ params }: { params: Promise<{ id:
   return (
     <div>
       {/* Top Toolbar (Hidden on Print) */}
-      <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ display: 'flex', gap: '10px' }}>
+      <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', padding: '12px 16px', background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <PrintTriggerButton />
           <Link href={`/visits/${visit.id}`} className="btn btn-outline">
             ← رجوع لصفحة الزيارة
           </Link>
         </div>
-        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-          يمكنك الضغط على زر "طباعة / حفظ كـ PDF" واختيار (Save as PDF) لحفظ الملف بجودة عالية.
-        </span>
+        <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span>💡 نصيحة: لحفظ التقرير وصورة الروشتة كـ PDF بأعلى دقة، اضغط "طباعة / حفظ كـ PDF" واختر (Save as PDF) مع التأكد من تفعيل خيار "رسومات الخلفية" (Background Graphics).</span>
+        </div>
       </div>
 
       {/* Official Medical Report Paper */}
@@ -100,30 +100,40 @@ export default async function VisitPrintPage({ params }: { params: Promise<{ id:
 
         {/* Uploaded Prescription Image (if attached) */}
         {visit.prescriptionImage && (
-          <div style={{ marginBottom: '20px', pageBreakInside: 'avoid' }}>
-            <h3 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '8px', color: '#1f2937' }}>
-              📷 صورة الروشتة المرفقة بالحالة
-            </h3>
-            <div style={{ border: '1px solid #e5e7eb', borderRadius: '6px', padding: '10px', textAlign: 'center', background: '#f9fafb' }}>
+          <div className="prescription-print-box">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', borderBottom: '1px solid #e5e7eb', paddingBottom: '6px' }}>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 800, margin: 0, color: '#111827', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>📷</span>
+                <span>صورة الروشتة الطبية الأصلية المرفقة بالحالة</span>
+              </h3>
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#4338ca', background: '#e0e7ff', padding: '2px 8px', borderRadius: '4px' }}>
+                مستند طبي أصلي
+              </span>
+            </div>
+            <div style={{ textAlign: 'center', padding: '4px 0' }}>
               <img
                 src={visit.prescriptionImage}
-                alt="صورة الروشتة الأصلية"
-                style={{ maxHeight: '350px', maxWidth: '100%', objectFit: 'contain', margin: '0 auto', display: 'block', borderRadius: '4px' }}
+                alt="صورة الروشتة الطبية الأصلية"
+                className="prescription-print-img"
+                loading="eager"
               />
+            </div>
+            <div style={{ textAlign: 'center', marginTop: '6px', fontSize: '0.78rem', color: '#6b7280' }}>
+              صورة طبق الأصل من الروشتة الطبية المسجلة بملف المريض ({visit.patient.fullName}) — تخصص {visit.specialty}
             </div>
           </div>
         )}
 
-        {/* Prescription Table */}
-        {visit.medications.length > 0 && (
-          <div style={{ marginBottom: '20px' }}>
+        {/* Prescription Table or Pharmacy Directive */}
+        {visit.medications.length > 0 ? (
+          <div style={{ marginBottom: '20px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
             <h3 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '8px', color: '#1f2937' }}>
-              💊 الأدوية المفرغة بالروشتة الطبية
+              💊 تفريغ الأدوية الموصوفة بالروشتة الطبية
             </h3>
             <table>
               <thead>
                 <tr>
-                  <th>م</th>
+                  <th style={{ width: '35px', textAlign: 'center' }}>م</th>
                   <th>اسم الدواء والتركيز</th>
                   <th>الجرعة والتكرار</th>
                   <th>مدة العلاج</th>
@@ -134,17 +144,23 @@ export default async function VisitPrintPage({ params }: { params: Promise<{ id:
               <tbody>
                 {visit.medications.map((m, idx) => (
                   <tr key={m.id}>
-                    <td>{idx + 1}</td>
+                    <td style={{ textAlign: 'center' }}>{idx + 1}</td>
                     <td style={{ fontWeight: 600 }}>{m.name} {m.concentration || ''}</td>
                     <td>{[m.dosage, m.frequency].filter(Boolean).join(' • ') || '—'}</td>
                     <td>{m.duration || '—'}</td>
                     <td>{m.usageMethod || '—'}</td>
-                    <td style={{ fontWeight: 600 }}>{m.quantity || '—'}</td>
+                    <td style={{ fontWeight: 700, color: '#047857' }}>{m.quantity || '—'}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+        ) : (
+          visit.prescriptionImage && (
+            <div style={{ padding: '10px 14px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '0.85rem', color: '#166534', marginBottom: '18px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+              ✓ <strong>توجيه الصيدلية:</strong> يتم الصرف استناداً إلى صورة الروشتة الأصلية المرفقة أعلاه بموجب قرار اللجنة والطبيب المعتمد.
+            </div>
+          )
         )}
 
         {/* Committee Opinions Summary (Confidentiality: Only doctor & admin see all reviews) */}
