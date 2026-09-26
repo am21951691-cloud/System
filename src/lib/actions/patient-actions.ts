@@ -15,6 +15,10 @@ export async function createPatient(formData: FormData) {
   const session = await getSession()
   if (!session) redirect('/login')
 
+  if (session.role !== 'admin') {
+    throw new Error('غير مصرح لك بإضافة مريض جديد - هذه الصلاحية لمدير النظام فقط')
+  }
+
   const fullName = sanitizeInput(formData.get('fullName'), 150)
   if (!fullName) {
     throw new Error('اسم المريض مطلوب')

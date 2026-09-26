@@ -1,11 +1,18 @@
 import { prisma } from '@/lib/db'
-import { notFound } from 'next/navigation'
+import { getSession } from '@/lib/auth'
+import { notFound, redirect } from 'next/navigation'
 import { createVisit } from '@/lib/actions/visit-actions'
 import Link from 'next/link'
 import MedicationForm from '@/components/MedicationForm'
 
 export default async function NewVisitPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  const session = await getSession()
+  if (!session) redirect('/login')
+  if (session.role !== 'admin') {
+    redirect(`/patients/${id}`)
+  }
+
   const patient = await prisma.patient.findUnique({
     where: { id: parseInt(id) },
   })

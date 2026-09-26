@@ -32,6 +32,11 @@ export default async function CommitteeReviewPage({ params }: { params: Promise<
 
   if (!visit) return notFound()
 
+  // If already approved or rejected, review phase is closed
+  if (visit.status === 'approved' || visit.status === 'rejected') {
+    redirect(`/visits/${visit.id}`)
+  }
+
   const submitReviewWithVisit = submitCommitteeReview.bind(null, visit.id)
 
   // Confidentiality rule: Only doctor and admin can see all members' opinions

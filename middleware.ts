@@ -50,7 +50,27 @@ export async function middleware(request: NextRequest) {
   }
 
   try {
-    await jwtVerify(token, JWT_SECRET)
+    const { payload } = await jwtVerify(token, JWT_SECRET)
+    const userRole = payload.role as string
+
+    // RBAC: Admin-only routes
+    if (
+      pathname.startsWith('/admin') ||
+      pathname.startsWith('/patients/new') ||
+      pathname.includes('/visits/new')
+    ) {
+      if (userRole !== 'admin') {
+        return NextResponse.redirect(new URL('/dashboard', request.url))
+      }
+    }
+
+    // RBAC: Doctor & Admin only routes (e.g. final decision)
+    if (pathname.includes('/decision')) {
+      if (userRole !== 'doctor' && userRole !== 'admin') {
+        return NextResponse.redirect(new URL('/dashboard', request.url))
+      }
+    }
+
     return NextResponse.next()
   } catch {
     // Invalid or manipulated token

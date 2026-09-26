@@ -1,10 +1,14 @@
 import { prisma } from '@/lib/db'
-import { notFound } from 'next/navigation'
+import { getSession } from '@/lib/auth'
+import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import VisitTimeline from '@/components/VisitTimeline'
 
 export default async function PatientPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  const session = await getSession()
+  if (!session) redirect('/login')
+
   const patient = await prisma.patient.findUnique({
     where: { id: parseInt(id) },
     include: {
@@ -16,6 +20,8 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
   })
 
   if (!patient) return notFound()
+
+  const isAdmin = session.role === 'admin'
 
   return (
     <>
@@ -30,9 +36,11 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
           >
             📚 تحميل / طباعة التاريخ الكامل (PDF)
           </Link>
-          <Link href={`/patients/${patient.id}/visits/new`} className="btn btn-primary">
-            ➕ إضافة زيارة جديدة
-          </Link>
+          {isAdmin && (
+            <Link href={`/patients/${patient.id}/visits/new`} className="btn btn-primary">
+              ➕ إضافة زيارة جديدة
+            </Link>
+          )}
           <Link href="/dashboard" className="btn btn-outline">
             ← لوحة التحكم
           </Link>

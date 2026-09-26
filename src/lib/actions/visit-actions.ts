@@ -15,6 +15,10 @@ export async function createVisit(patientId: number, formData: FormData) {
   const session = await getSession()
   if (!session) redirect('/login')
 
+  if (session.role !== 'admin') {
+    throw new Error('غير مصرح لك بإضافة زيارة جديدة - هذه الصلاحية لمدير النظام فقط')
+  }
+
   const specialty = sanitizeInput(formData.get('specialty'), 100) || 'عام'
   const description = sanitizeInput(formData.get('description'), 1000)
   const generalCondition = sanitizeInput(formData.get('generalCondition'), 255)
@@ -76,6 +80,10 @@ export async function sendToCommittee(visitId: number) {
   const session = await getSession()
   if (!session) redirect('/login')
 
+  if (session.role !== 'admin') {
+    throw new Error('غير مصرح لك بإرسال الحالة للجنة - هذه الصلاحية لمدير النظام فقط')
+  }
+
   await prisma.visit.update({
     where: { id: visitId },
     data: { status: 'committee_review' },
@@ -84,7 +92,7 @@ export async function sendToCommittee(visitId: number) {
   await logAudit(
     session.userId,
     'إرسال الحالة للجنة',
-    `تم إرسال الزيارة رقم ${visitId} للجنة`,
+    `تم إرسال الزيارة رقم ${visitId} للجنة بواسطة ${session.name}`,
     'visit',
     visitId
   )
@@ -96,6 +104,10 @@ export async function sendToDoctor(visitId: number) {
   const session = await getSession()
   if (!session) redirect('/login')
 
+  if (session.role !== 'doctor' && session.role !== 'admin') {
+    throw new Error('غير مصرح لك بإرسال الحالة للطبيب - هذه الصلاحية للطبيب أو مدير النظام فقط')
+  }
+
   await prisma.visit.update({
     where: { id: visitId },
     data: { status: 'doctor_review' },
@@ -104,7 +116,7 @@ export async function sendToDoctor(visitId: number) {
   await logAudit(
     session.userId,
     'إرسال الحالة للطبيب',
-    `تم إرسال الزيارة رقم ${visitId} للطبيب`,
+    `تم إرسال الزيارة رقم ${visitId} للطبيب بواسطة ${session.name}`,
     'visit',
     visitId
   )

@@ -1,8 +1,16 @@
 import { createPatient } from '@/lib/actions/patient-actions'
+import { getSession } from '@/lib/auth'
+import { redirect } from 'next/navigation'
 import MedicationForm from '@/components/MedicationForm'
 import Link from 'next/link'
 
-export default function NewPatientPage() {
+export default async function NewPatientPage() {
+  const session = await getSession()
+  if (!session) redirect('/login')
+  if (session.role !== 'admin') {
+    redirect('/dashboard')
+  }
+
   return (
     <>
       <div className="page-header">

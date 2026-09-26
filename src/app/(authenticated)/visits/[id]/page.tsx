@@ -251,11 +251,17 @@ export default async function VisitPage({ params }: { params: Promise<{ id: stri
       {/* Workflow Navigation & Stage Action Buttons */}
       <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', marginTop: '8px' }}>
         {visit.status === 'new' && (
-          <form action={sendToCommitteeWithId} style={{ flex: 1, minWidth: '220px' }}>
-            <button type="submit" className="btn btn-yellow btn-lg" style={{ width: '100%', justifyContent: 'center' }}>
-              📤 إرسال الحالة إلى اللجنة الطبية
-            </button>
-          </form>
+          session.role === 'admin' ? (
+            <form action={sendToCommitteeWithId} style={{ flex: 1, minWidth: '220px' }}>
+              <button type="submit" className="btn btn-yellow btn-lg" style={{ width: '100%', justifyContent: 'center' }}>
+                📤 إرسال الحالة إلى اللجنة الطبية
+              </button>
+            </form>
+          ) : (
+            <div style={{ flex: 1, padding: '12px 18px', background: 'var(--bg-input)', borderRadius: 'var(--radius)', border: '1px solid var(--border)', textAlign: 'center', color: 'var(--text-secondary)' }}>
+              📝 الحالة مسودة جديدة بانتظار إرسالها للجنة من قبل مدير النظام
+            </div>
+          )
         )}
 
         {visit.status === 'committee_review' && (
@@ -263,11 +269,13 @@ export default async function VisitPage({ params }: { params: Promise<{ id: stri
             <Link href={`/visits/${visit.id}/committee`} className="btn btn-yellow btn-lg" style={{ flex: 1, minWidth: '200px', justifyContent: 'center' }}>
               ✍️ تسجيل رأي اللجنة الطبية
             </Link>
-            <form action={sendToDoctorWithId} style={{ flex: 1, minWidth: '200px' }}>
-              <button type="submit" className="btn btn-primary btn-lg" style={{ width: '100%', justifyContent: 'center' }}>
-                📤 إرسال الحالة إلى الطبيب للاعتماد
-              </button>
-            </form>
+            {(session.role === 'doctor' || session.role === 'admin') && (
+              <form action={sendToDoctorWithId} style={{ flex: 1, minWidth: '200px' }}>
+                <button type="submit" className="btn btn-primary btn-lg" style={{ width: '100%', justifyContent: 'center' }}>
+                  📤 إرسال الحالة إلى الطبيب للاعتماد
+                </button>
+              </form>
+            )}
           </>
         )}
 

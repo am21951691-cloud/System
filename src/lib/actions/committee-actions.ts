@@ -9,6 +9,19 @@ export async function submitCommitteeReview(visitId: number, formData: FormData)
   const session = await getSession()
   if (!session) redirect('/login')
 
+  const visit = await prisma.visit.findUnique({
+    where: { id: visitId },
+  })
+
+  if (!visit) {
+    throw new Error('الزيارة غير موجودة')
+  }
+
+  // Prevent modifications if visit is already finalized
+  if (visit.status === 'approved' || visit.status === 'rejected') {
+    throw new Error('لا يمكن تسجيل أو تعديل رأي اللجنة بعد اعتماد القرار النهائي للزيارة')
+  }
+
   const decision = String(formData.get('decision') || '').trim()
   const allowedDecisions = ['approved', 'rejected', 'needs_info']
   if (!allowedDecisions.includes(decision)) {

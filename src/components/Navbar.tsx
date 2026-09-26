@@ -58,22 +58,22 @@ export default async function Navbar() {
         >
           📊 لوحة المتابعة
         </Link>
-        <Link
-          href="/patients/new"
-          className="tab-btn"
-          style={{
-            fontSize: '0.95rem',
-            padding: '8px 16px',
-            minHeight: '44px',
-            color: 'var(--text-secondary)',
-            textDecoration: 'none',
-          }}
-        >
-          ➕ مريض جديد
-        </Link>
 
         {isAdmin && (
           <>
+            <Link
+              href="/patients/new"
+              className="tab-btn"
+              style={{
+                fontSize: '0.95rem',
+                padding: '8px 16px',
+                minHeight: '44px',
+                color: 'var(--text-secondary)',
+                textDecoration: 'none',
+              }}
+            >
+              ➕ مريض جديد
+            </Link>
             <Link
               href="/admin/users"
               className="tab-btn"

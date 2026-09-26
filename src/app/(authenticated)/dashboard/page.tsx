@@ -88,14 +88,20 @@ export default async function DashboardPage({
         <div>
           <h1>📊 لوحة متابعة الحالات</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-            مرحباً بك د. {session.name}
+            {session.role === 'admin'
+              ? `مرحباً بك، مدير النظام: ${session.name}`
+              : session.role === 'doctor'
+              ? `مرحباً بك د. ${session.name}`
+              : `مرحباً بك، عضو اللجنة الطبية: ${session.name}`}
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <Link href="/patients/new" className="btn btn-primary">
-            ➕ إضافة مريض جديد وروشتة
-          </Link>
-        </div>
+        {session.role === 'admin' && (
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <Link href="/patients/new" className="btn btn-primary">
+              ➕ إضافة مريض جديد وروشتة
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* Interactive Stats Cards */}
@@ -142,9 +148,11 @@ export default async function DashboardPage({
             {searchResults.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-secondary)' }}>
                 <p>لا يوجد مريض مطابق لهذا البحث.</p>
-                <Link href="/patients/new" className="btn btn-outline" style={{ marginTop: '12px' }}>
-                  ➕ تسجيل هذا المريض الآن
-                </Link>
+                {session.role === 'admin' && (
+                  <Link href="/patients/new" className="btn btn-outline" style={{ marginTop: '12px' }}>
+                    ➕ تسجيل هذا المريض الآن
+                  </Link>
+                )}
               </div>
             ) : (
               <div className="table-container">
@@ -172,9 +180,11 @@ export default async function DashboardPage({
                             <Link href={`/patients/${p.id}`} className="btn btn-sm btn-primary">
                               📋 فتح الملف
                             </Link>
-                            <Link href={`/patients/${p.id}/visits/new`} className="btn btn-sm btn-outline">
-                              ➕ زيارة جديدة
-                            </Link>
+                            {session.role === 'admin' && (
+                              <Link href={`/patients/${p.id}/visits/new`} className="btn btn-sm btn-outline">
+                                ➕ زيارة جديدة
+                              </Link>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -251,9 +261,11 @@ export default async function DashboardPage({
           patientsList.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '32px', color: 'var(--text-secondary)' }}>
               <p>لا يوجد مرضى مسجلين حتى الآن.</p>
-              <Link href="/patients/new" className="btn btn-primary" style={{ marginTop: '12px' }}>
-                ➕ تسجيل مريض جديد
-              </Link>
+              {session.role === 'admin' && (
+                <Link href="/patients/new" className="btn btn-primary" style={{ marginTop: '12px' }}>
+                  ➕ تسجيل مريض جديد
+                </Link>
+              )}
             </div>
           ) : (
             <div className="table-container">
@@ -300,12 +312,14 @@ export default async function DashboardPage({
                             >
                               📋 الملف
                             </Link>
-                            <Link
-                              href={`/patients/${p.id}/visits/new`}
-                              className="btn btn-sm btn-outline"
-                            >
-                              ➕ زيارة جديدة
-                            </Link>
+                            {session.role === 'admin' && (
+                              <Link
+                                href={`/patients/${p.id}/visits/new`}
+                                className="btn btn-sm btn-outline"
+                              >
+                                ➕ زيارة جديدة
+                              </Link>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -388,7 +402,7 @@ export default async function DashboardPage({
                             )
                           )}
 
-                          {visit.status === 'new' && (
+                          {visit.status === 'new' && session.role === 'admin' && (
                             <form action={async () => { 'use server'; await sendToCommittee(visit.id) }}>
                               <button
                                 type="submit"
