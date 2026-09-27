@@ -81,33 +81,10 @@ export async function createPatient(formData: FormData) {
     },
   })
 
-  // 3. Create all medications from prescription form
-  const medNames = formData.getAll('medName')
-  let medsCount = 0
-
-  for (let i = 0; i < medNames.length; i++) {
-    const name = sanitizeInput(medNames[i], 150)
-    if (!name) continue
-
-    await prisma.medication.create({
-      data: {
-        visitId: visit.id,
-        name,
-        concentration: sanitizeInput(formData.getAll('medConcentration')[i], 50),
-        dosage: sanitizeInput(formData.getAll('medDosage')[i], 50),
-        frequency: sanitizeInput(formData.getAll('medFrequency')[i], 100),
-        duration: sanitizeInput(formData.getAll('medDuration')[i], 100),
-        usageMethod: sanitizeInput(formData.getAll('medUsage')[i], 150),
-        quantity: sanitizeInput(formData.getAll('medQuantity')[i], 150),
-      },
-    })
-    medsCount++
-  }
-
   await logAudit(
     session.userId,
     'إضافة زيارة وروشتة أولية',
-    `تم تسجيل زيارة [${specialty}] وروشتة تضم [${medsCount}] دواء للمريض ${patient.fullName}`,
+    `تم تسجيل زيارة [${specialty}] مع إرفاق الروشتة للمريض ${patient.fullName}`,
     'visit',
     visit.id
   )

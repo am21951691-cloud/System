@@ -43,9 +43,11 @@ export default function VisitTimeline({ visits }: { visits: Visit[] }) {
               زيارة تخصص: <strong>{visit.specialty}</strong>
             </div>
             {visit.finalDecision && (
-              <div style={{ fontSize: '0.8rem', marginTop: '4px', color: visit.finalDecision.decisionType === 'denied' ? 'var(--red)' : 'var(--green)', fontWeight: 600 }}>
-                {visit.finalDecision.decisionType === 'charity' ? '🟢 صرف كصدقة (مجاني)' :
-                 visit.finalDecision.decisionType === 'paid' ? '🔵 صرف بمقابل مالي' : '🔴 تم رفض الصرف'}
+              <div style={{ fontSize: '0.8rem', marginTop: '4px', color: (visit.finalDecision.decisionType === 'rejected' || visit.finalDecision.decisionType === 'denied') ? 'var(--red)' : 'var(--green)', fontWeight: 600 }}>
+                {visit.finalDecision.decisionType === 'approved' ? '🟢 يستحق الصرف (موافقة)' :
+                 visit.finalDecision.decisionType === 'charity' ? '🟢 صرف كصدقة (مجاني)' :
+                 visit.finalDecision.decisionType === 'paid' ? '🔵 صرف بمقابل مالي' :
+                 visit.finalDecision.decisionType === 'rejected' || visit.finalDecision.decisionType === 'denied' ? '🔴 تم رفض الصرف' : '⚖️ قرار نهائي'}
                 {visit.finalDecision.dispenseDuration ? ` — مدة الصرف: ${visit.finalDecision.dispenseDuration}` : ''}
               </div>
             )}

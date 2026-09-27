@@ -9,6 +9,10 @@ export async function submitCommitteeReview(visitId: number, formData: FormData)
   const session = await getSession()
   if (!session) redirect('/login')
 
+  if (session.role !== 'member' && session.role !== 'admin') {
+    throw new Error('غير مصرح لك بتسجيل رأي في اللجنة الطبية - هذه الصلاحية لأعضاء اللجنة أو مدير النظام')
+  }
+
   const visit = await prisma.visit.findUnique({
     where: { id: visitId },
   })
@@ -17,15 +21,15 @@ export async function submitCommitteeReview(visitId: number, formData: FormData)
     throw new Error('الزيارة غير موجودة')
   }
 
-  // Prevent modifications if visit is already finalized
+  // Prevent modifications if visit is already finalized (tamper-proof state locking)
   if (visit.status === 'approved' || visit.status === 'rejected') {
     throw new Error('لا يمكن تسجيل أو تعديل رأي اللجنة بعد اعتماد القرار النهائي للزيارة')
   }
 
   const decision = String(formData.get('decision') || '').trim()
-  const allowedDecisions = ['approved', 'rejected', 'needs_info']
+  const allowedDecisions = ['paid', 'charity', 'zakat', 'denied']
   if (!allowedDecisions.includes(decision)) {
-    throw new Error('رأي اللجنة غير صالح')
+    throw new Error('رأي اللجنة غير صالح، يرجى اختيار أحد الخيارات الأربعة المعتمدة')
   }
 
   const notesRaw = formData.get('notes')
@@ -58,10 +62,17 @@ export async function submitCommitteeReview(visitId: number, formData: FormData)
     reviewId = created.id
   }
 
+  const decisionLabels: Record<string, string> = {
+    paid: 'يصرف بمال',
+    charity: 'يصرف كصدقة',
+    zakat: 'يصرف كزكاة مال',
+    denied: 'لا يصرف',
+  }
+
   await logAudit(
     session.userId,
     existing ? 'تعديل رأي اللجنة' : 'إضافة رأي اللجنة',
-    `عضو اللجنة ${session.name} ${existing ? 'عدّل' : 'سجل'} رأيه - ${decision === 'approved' ? 'موافق' : decision === 'rejected' ? 'رافض' : 'يحتاج معلومات'}`,
+    `عضو اللجنة ${session.name} ${existing ? 'عدّل' : 'سجل'} توصيته: [${decisionLabels[decision] || decision}] للزيارة رقم ${visitId}`,
     'committee_review',
     reviewId
   )

@@ -2,7 +2,8 @@ import { prisma } from '@/lib/db'
 import { getSession } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { toggleUserActive, createUser } from '@/lib/actions/user-actions'
+import { createUser } from '@/lib/actions/user-actions'
+import UserActionsMenu from '@/components/UserActionsMenu'
 
 export default async function UsersPage() {
   const session = await getSession()
@@ -50,8 +51,9 @@ export default async function UsersPage() {
               <div className="form-group">
                 <label>الدور والصلاحية *</label>
                 <select name="role" required defaultValue="doctor">
-                  <option value="doctor">🩺 طبيب معتمد (اتخاذ القرار النهائي)</option>
-                  <option value="member">👥 عضو لجنة / استقبال (مراجعة وقيد)</option>
+                  <option value="doctor">🩺 طبيب معتمد (اتخاذ القرار النهائي وتفريغ الأدوية)</option>
+                  <option value="member">👥 عضو لجنة طبية (تقييم الحالات وتقديم التوصيات)</option>
+                  <option value="accountant">💰 محاسب (متابعة الصرف والبيانات المالية)</option>
                   <option value="admin">🔒 مدير نظام (كامل الصلاحيات)</option>
                 </select>
               </div>
@@ -80,13 +82,16 @@ export default async function UsersPage() {
             </h2>
             <ul style={{ paddingRight: '20px', color: 'var(--text-secondary)', fontSize: '0.88rem', lineHeight: '1.9' }}>
               <li>
-                <strong>مدير النظام (Admin):</strong> يملك كافة الصلاحيات بما فيها إدارة المستخدمين وسجل الرقابة.
+                <strong>مدير النظام (Admin):</strong> يملك كافة الصلاحيات بما فيها إدارة المستخدمين وتعديلهم وسجل الرقابة وإضافة الحالات.
               </li>
               <li>
-                <strong>الطبيب المعتمد (Doctor):</strong> يستطيع اعتماد القرار النهائي لصرف الأدوية (خيري/مدفوع/رفض).
+                <strong>الطبيب المعتمد (Doctor):</strong> يستطيع اعتماد القرار النهائي لصرف الأدوية وتفريغ أصناف وجداول الصرف.
               </li>
               <li>
-                <strong>عضو اللجنة (Member):</strong> تسجيل الحالات وإبداء الرأي والتوصيات دون اعتماد الصرف النهائي.
+                <strong>عضو اللجنة (Member):</strong> تقييم الحالات وإبداء التوصيات دون الاطلاع على الأدوية أو اعتماد الصرف النهائي.
+              </li>
+              <li>
+                <strong>المحاسب (Accountant):</strong> متابعة بيانات الصرف والكميات والقرارات المالية بدون الاطلاع على التشخيص الطبي والسريريات.
               </li>
               <li>
                 <strong>تعطيل الحساب:</strong> يؤدي فوراً إلى حظر الدخول دون حذف سجل العمليات السابقة للمستخدم.
@@ -96,7 +101,7 @@ export default async function UsersPage() {
 
           <div style={{ marginTop: '16px', padding: '12px', background: 'rgba(99, 102, 241, 0.1)', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
             <span style={{ fontSize: '0.82rem', color: 'var(--primary)' }}>
-              🔒 جميع عمليات إنشاء أو تعديل الحسابات موثقة بصورة غير قابلة للمسح في سجل الأثر الرقابي.
+              🔒 جميع عمليات إنشاء أو تعديل الحسابات أو تغيير كلمات المرور موثقة بصورة غير قابلة للمسح في سجل الأثر الرقابي.
             </span>
           </div>
         </div>
@@ -116,7 +121,7 @@ export default async function UsersPage() {
                 <th>الدور</th>
                 <th>الحالة</th>
                 <th>تاريخ الإنشاء</th>
-                <th>التحكم</th>
+                <th>إدارة الحساب</th>
               </tr>
             </thead>
             <tbody>
@@ -131,6 +136,8 @@ export default async function UsersPage() {
                         <span className="badge badge-rejected" style={{ fontSize: '0.72rem' }}>مدير نظام</span>
                       ) : user.role === 'doctor' ? (
                         <span className="badge badge-doctor" style={{ fontSize: '0.72rem' }}>طبيب معتمد</span>
+                      ) : user.role === 'accountant' ? (
+                        <span className="badge badge-committee" style={{ fontSize: '0.72rem' }}>محاسب</span>
                       ) : (
                         <span className="badge badge-approved" style={{ fontSize: '0.72rem' }}>عضو لجنة</span>
                       )}
@@ -144,21 +151,7 @@ export default async function UsersPage() {
                       {new Date(user.createdAt).toLocaleDateString('ar-EG')}
                     </td>
                     <td>
-                      {isCurrent ? (
-                        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                          (حسابك الحالي)
-                        </span>
-                      ) : (
-                        <form action={toggleUserActive.bind(null, user.id)}>
-                          <button
-                            type="submit"
-                            className={`btn ${user.active ? 'btn-red' : 'btn-green'}`}
-                            style={{ padding: '6px 14px', fontSize: '0.8rem', minHeight: '34px' }}
-                          >
-                            {user.active ? 'تعطيل الحساب' : 'تفعيل الحساب'}
-                          </button>
-                        </form>
-                      )}
+                      <UserActionsMenu user={user} isCurrent={isCurrent} />
                     </td>
                   </tr>
                 )

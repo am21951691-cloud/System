@@ -59,16 +59,18 @@ model Visit {
 }
 
 model Medication {
-  id          Int    @id @default(autoincrement())
-  visitId     Int
-  name        String
-  concentration String?
-  dosage      String?
-  frequency   String?
-  duration    String?
-  usageMethod String?
-  quantity    String?
-  totalQuantity String?
+  id               Int     @id @default(autoincrement())
+  visitId          Int
+  name             String
+  concentration    String?
+  dosage           String?
+  frequency        String?
+  duration         String?
+  usageMethod      String?
+  dispenseInterval String?
+  quantity         String?
+  totalQuantity    String?
+  notes            String?
 
   visit Visit @relation(fields: [visitId], references: [id])
 }

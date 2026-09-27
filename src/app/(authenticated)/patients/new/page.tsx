@@ -1,7 +1,7 @@
 import { createPatient } from '@/lib/actions/patient-actions'
 import { getSession } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import MedicationForm from '@/components/MedicationForm'
+import PrescriptionUpload from '@/components/PrescriptionUpload'
 import Link from 'next/link'
 
 export default async function NewPatientPage() {
@@ -136,19 +136,19 @@ export default async function NewPatientPage() {
           </div>
         </div>
 
-        {/* Section 3: Prescription Form */}
+        {/* Section 3: Prescription Upload */}
         <div className="card">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
-            <span style={{ fontSize: '1.4rem' }}>💊</span>
+            <span style={{ fontSize: '1.4rem' }}>📄</span>
             <div>
-              <h2 style={{ fontSize: '1.1rem', margin: 0 }}>الروشتة وقائمة الأدوية المطلوبة</h2>
+              <h2 style={{ fontSize: '1.1rem', margin: 0 }}>صورة الروشتة الطبية</h2>
               <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: '4px 0 0 0' }}>
-                أدخل الأدوية الموصوفة والجرعات وكميات الصرف المقترحة
+                التقاط صورة واضحة للروشتة بالكاميرا أو اختيارها من الجهاز لمراجعتها من اللجنة واعتماد صرفها من الطبيب
               </p>
             </div>
           </div>
 
-          <MedicationForm />
+          <PrescriptionUpload />
         </div>
 
         {/* Action Buttons */}

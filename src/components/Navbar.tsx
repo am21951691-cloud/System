@@ -126,11 +126,19 @@ export default async function Navbar() {
                 ? 'badge-rejected'
                 : session.role === 'doctor'
                 ? 'badge-doctor'
+                : session.role === 'accountant'
+                ? 'badge-committee'
                 : 'badge-approved'
             }`}
             style={{ fontSize: '0.72rem', padding: '2px 8px' }}
           >
-            {session.role === 'admin' ? 'مدير' : session.role === 'doctor' ? 'طبيب' : 'عضو'}
+            {session.role === 'admin'
+              ? 'مدير'
+              : session.role === 'doctor'
+              ? 'طبيب'
+              : session.role === 'accountant'
+              ? 'محاسب'
+              : 'عضو'}
           </span>
         </span>
 

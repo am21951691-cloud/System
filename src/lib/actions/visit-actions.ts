@@ -24,6 +24,8 @@ export async function createVisit(patientId: number, formData: FormData) {
   const generalCondition = sanitizeInput(formData.get('generalCondition'), 255)
   const diagnosis = sanitizeInput(formData.get('diagnosis'), 500)
   const notes = sanitizeInput(formData.get('notes'), 1000)
+  const rawStatus = sanitizeInput(formData.get('targetStatus'), 30)
+  const targetStatus = rawStatus === 'new' ? 'new' : 'committee_review'
   const rawImage = formData.get('prescriptionImage')
   const prescriptionImage = typeof rawImage === 'string' && rawImage.startsWith('data:image/') ? rawImage : null
 
@@ -36,39 +38,14 @@ export async function createVisit(patientId: number, formData: FormData) {
       diagnosis,
       notes,
       prescriptionImage,
+      status: targetStatus,
     },
   })
-
-  const medNames = formData.getAll('medName')
-  const medConcs = formData.getAll('medConcentration')
-  const medDosages = formData.getAll('medDosage')
-  const medFreqs = formData.getAll('medFrequency')
-  const medDurs = formData.getAll('medDuration')
-  const medUsages = formData.getAll('medUsage')
-  const medQuants = formData.getAll('medQuantity')
-
-  for (let i = 0; i < medNames.length; i++) {
-    const rawName = sanitizeInput(medNames[i], 200)
-    if (!rawName) continue
-
-    await prisma.medication.create({
-      data: {
-        visitId: visit.id,
-        name: rawName,
-        concentration: sanitizeInput(medConcs[i], 100),
-        dosage: sanitizeInput(medDosages[i], 100),
-        frequency: sanitizeInput(medFreqs[i], 100),
-        duration: sanitizeInput(medDurs[i], 100),
-        usageMethod: sanitizeInput(medUsages[i], 100),
-        quantity: sanitizeInput(medQuants[i], 100),
-      },
-    })
-  }
 
   await logAudit(
     session.userId,
     'إضافة زيارة جديدة',
-    `تم إضافة زيارة ${visit.specialty} للمريض`,
+    `تم إضافة زيارة ${visit.specialty} للمريض مع إرفاق الروشتة`,
     'visit',
     visit.id
   )

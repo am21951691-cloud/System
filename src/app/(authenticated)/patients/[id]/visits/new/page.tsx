@@ -3,7 +3,7 @@ import { getSession } from '@/lib/auth'
 import { notFound, redirect } from 'next/navigation'
 import { createVisit } from '@/lib/actions/visit-actions'
 import Link from 'next/link'
-import MedicationForm from '@/components/MedicationForm'
+import PrescriptionUpload from '@/components/PrescriptionUpload'
 
 export default async function NewVisitPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -67,14 +67,38 @@ export default async function NewVisitPage({ params }: { params: Promise<{ id: s
         </div>
 
         <div className="card" style={{ marginBottom: '24px' }}>
-          <MedicationForm />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
+            <span style={{ fontSize: '1.4rem' }}>📄</span>
+            <div>
+              <h2 style={{ fontSize: '1.1rem', margin: 0 }}>صورة الروشتة الطبية</h2>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: '4px 0 0 0' }}>
+                التقاط صورة واضحة للروشتة بالكاميرا أو اختيارها من الجهاز لمراجعتها من اللجنة واعتماد صرفها من الطبيب
+              </p>
+            </div>
+          </div>
+          <PrescriptionUpload />
         </div>
 
-        <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
-          <button type="submit" className="btn btn-primary btn-lg" style={{ flex: 1, minWidth: '220px', justifyContent: 'center' }}>
-            ✅ حفظ الزيارة والروشتة
+        <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <button
+            type="submit"
+            name="targetStatus"
+            value="committee_review"
+            className="btn btn-primary btn-lg"
+            style={{ flex: 1, minWidth: '240px', justifyContent: 'center' }}
+          >
+            🚀 حفظ الزيارة والروشتة وإرسالها للجنة
           </button>
-          <Link href={`/patients/${patient.id}`} className="btn btn-outline" style={{ minWidth: '120px' }}>
+          <button
+            type="submit"
+            name="targetStatus"
+            value="new"
+            className="btn btn-outline btn-lg"
+            style={{ minWidth: '180px', justifyContent: 'center' }}
+          >
+            💾 حفظ كمسودة جديدة
+          </button>
+          <Link href={`/patients/${patient.id}`} className="btn btn-outline btn-lg" style={{ minWidth: '100px', justifyContent: 'center' }}>
             إلغاء
           </Link>
         </div>

@@ -1,19 +1,23 @@
 import { prisma } from '@/lib/db'
 import { getSession } from '@/lib/auth'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import PrintTriggerButton from '@/components/PrintTriggerButton'
 
 export default async function VisitPrintPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const session = await getSession()
-  if (!session) return null
+  if (!session) redirect('/login')
+
+  const isMember = session.role === 'member'
+  const isAccountant = session.role === 'accountant'
+  const canSeeAllReviews = session.role === 'doctor' || session.role === 'admin'
 
   const visit = await prisma.visit.findUnique({
     where: { id: parseInt(id) },
     include: {
       patient: true,
-      medications: true,
+      medications: !isMember,
       committeeReviews: {
         include: { user: { select: { name: true } } },
         orderBy: { createdAt: 'desc' },
@@ -24,8 +28,6 @@ export default async function VisitPrintPage({ params }: { params: Promise<{ id:
 
   if (!visit) return notFound()
 
-  // Confidentiality: Only doctor and admin can see all members' opinions
-  const canSeeAllReviews = session.role === 'doctor' || session.role === 'admin'
   const myReview = visit.committeeReviews.find((r) => r.userId === session.userId)
 
   return (
@@ -84,22 +86,32 @@ export default async function VisitPrintPage({ params }: { params: Promise<{ id:
           </div>
         </div>
 
-        {/* Clinical Info */}
+        {/* Clinical Info (Redacted for Accountant) */}
         <div style={{ marginBottom: '16px', fontSize: '0.9rem' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '8px' }}>
             <div><strong>التخصص الطبي:</strong> {visit.specialty}</div>
-            <div><strong>الحالة العامة:</strong> {visit.generalCondition || 'مستقرة'}</div>
+            <div>
+              <strong>الحالة العامة:</strong>{' '}
+              {isAccountant ? <span style={{ fontStyle: 'italic', color: '#6b7280' }}>🔒 محجوب (صلاحية محاسب)</span> : (visit.generalCondition || 'مستقرة')}
+            </div>
           </div>
-          {visit.diagnosis && (
-            <div style={{ marginBottom: '6px' }}><strong>التشخيص الطبي:</strong> {visit.diagnosis}</div>
-          )}
-          {visit.description && (
-            <div><strong>وصف الحالة والأعراض:</strong> {visit.description}</div>
+          <div>
+            <strong>التشخيص الطبي:</strong>{' '}
+            {isAccountant ? (
+              <span style={{ fontStyle: 'italic', color: '#6b7280' }}>🔒 محجوب (صلاحية محاسب)</span>
+            ) : (
+              visit.diagnosis || '—'
+            )}
+          </div>
+          {!isAccountant && visit.description && (
+            <div style={{ marginTop: '6px' }}>
+              <strong>وصف الحالة والأعراض:</strong> {visit.description}
+            </div>
           )}
         </div>
 
-        {/* Uploaded Prescription Image (if attached) */}
-        {visit.prescriptionImage && (
+        {/* Uploaded Prescription Image (Hidden for accountant to safeguard clinical confidentiality) */}
+        {!isAccountant && visit.prescriptionImage && (
           <div className="prescription-print-box">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', borderBottom: '1px solid #e5e7eb', paddingBottom: '6px' }}>
               <h3 style={{ fontSize: '0.95rem', fontWeight: 800, margin: 0, color: '#111827', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -124,21 +136,22 @@ export default async function VisitPrintPage({ params }: { params: Promise<{ id:
           </div>
         )}
 
-        {/* Prescription Table or Pharmacy Directive */}
-        {visit.medications.length > 0 ? (
+        {/* Prescription Table or Pharmacy Directive (Strictly hidden for committee members) */}
+        {!isMember && visit.medications && visit.medications.length > 0 && (
           <div style={{ marginBottom: '20px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
             <h3 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '8px', color: '#1f2937' }}>
-              💊 تفريغ الأدوية الموصوفة بالروشتة الطبية
+              💊 تفريغ الأدوية المعتمدة للصرف بالصيدلية
             </h3>
             <table>
               <thead>
                 <tr>
                   <th style={{ width: '35px', textAlign: 'center' }}>م</th>
                   <th>اسم الدواء والتركيز</th>
-                  <th>الجرعة والتكرار</th>
+                  {!isAccountant && <th>الجرعة والتكرار</th>}
                   <th>مدة العلاج</th>
-                  <th>طريقة الاستخدام</th>
+                  {!isAccountant && <th>طريقة الاستخدام</th>}
                   <th>الكمية المقررة</th>
+                  <th>فترة الصرف الدوري</th>
                 </tr>
               </thead>
               <tbody>
@@ -146,83 +159,90 @@ export default async function VisitPrintPage({ params }: { params: Promise<{ id:
                   <tr key={m.id}>
                     <td style={{ textAlign: 'center' }}>{idx + 1}</td>
                     <td style={{ fontWeight: 600 }}>{m.name} {m.concentration || ''}</td>
-                    <td>{[m.dosage, m.frequency].filter(Boolean).join(' • ') || '—'}</td>
+                    {!isAccountant && <td>{[m.dosage, m.frequency].filter(Boolean).join(' • ') || '—'}</td>}
                     <td>{m.duration || '—'}</td>
-                    <td>{m.usageMethod || '—'}</td>
-                    <td style={{ fontWeight: 700, color: '#047857' }}>{m.quantity || '—'}</td>
+                    {!isAccountant && <td>{m.usageMethod || '—'}</td>}
+                    <td style={{ fontWeight: 700, color: '#047857' }}>{m.quantity || m.totalQuantity || '—'}</td>
+                    <td>{m.dispenseInterval || '—'}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        ) : (
-          visit.prescriptionImage && (
-            <div style={{ padding: '10px 14px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '0.85rem', color: '#166534', marginBottom: '18px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-              ✓ <strong>توجيه الصيدلية:</strong> يتم الصرف استناداً إلى صورة الروشتة الأصلية المرفقة أعلاه بموجب قرار اللجنة والطبيب المعتمد.
-            </div>
-          )
         )}
 
-        {/* Committee Opinions Summary (Confidentiality: Only doctor & admin see all reviews) */}
-        {canSeeAllReviews ? (
-          visit.committeeReviews.length > 0 && (
-            <div style={{ marginBottom: '20px' }}>
-              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '8px', color: '#1f2937' }}>
-                👥 توصيات ومراجعات أعضاء اللجنة الطبية
-              </h3>
-              <table>
-                <thead>
-                  <tr>
-                    <th>عضو اللجنة</th>
-                    <th>الرأي والتوصية</th>
-                    <th>الملاحظات</th>
-                    <th>التاريخ والوقت</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {visit.committeeReviews.map((r) => (
-                    <tr key={r.id}>
-                      <td style={{ fontWeight: 600 }}>{r.user.name}</td>
-                      <td>
-                        {r.decision === 'approved' ? '🟢 موافق على الصرف' :
-                         r.decision === 'rejected' ? '🔴 غير موافق' : '🟡 يحتاج معلومات إضافية'}
-                      </td>
-                      <td>{r.notes || '—'}</td>
-                      <td style={{ fontSize: '0.8rem' }}>{new Date(r.createdAt).toLocaleString('ar-EG')}</td>
+        {/* Committee Opinions Summary (Hidden for Accountant; Member sees only their own; Doctor & Admin see all) */}
+        {!isAccountant && (
+          canSeeAllReviews ? (
+            visit.committeeReviews.length > 0 && (
+              <div style={{ marginBottom: '20px' }}>
+                <h3 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '8px', color: '#1f2937' }}>
+                  👥 توصيات ومراجعات أعضاء اللجنة الطبية ({visit.committeeReviews.length})
+                </h3>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>عضو اللجنة</th>
+                      <th>الرأي والتوصية</th>
+                      <th>الملاحظات</th>
+                      <th>التاريخ والوقت</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )
-        ) : (
-          myReview && (
-            <div style={{ marginBottom: '20px' }}>
-              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '8px', color: '#1f2937' }}>
-                👥 رأيك كعضو في اللجنة الطبية
-              </h3>
-              <table>
-                <thead>
-                  <tr>
-                    <th>عضو اللجنة</th>
-                    <th>الرأي والتوصية</th>
-                    <th>الملاحظات</th>
-                    <th>التاريخ والوقت</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td style={{ fontWeight: 600 }}>{myReview.user.name}</td>
-                    <td>
-                      {myReview.decision === 'approved' ? '🟢 موافق على الصرف' :
-                       myReview.decision === 'rejected' ? '🔴 غير موافق' : '🟡 يحتاج معلومات إضافية'}
-                    </td>
-                    <td>{myReview.notes || '—'}</td>
-                    <td style={{ fontSize: '0.8rem' }}>{new Date(myReview.createdAt).toLocaleString('ar-EG')}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {visit.committeeReviews.map((r) => (
+                      <tr key={r.id}>
+                        <td style={{ fontWeight: 600 }}>{r.user.name}</td>
+                        <td>
+                          {r.decision === 'paid' && '🔵 يصرف بمال'}
+                          {r.decision === 'charity' && '🟢 يصرف كصدقة'}
+                          {r.decision === 'zakat' && '🟣 يصرف كزكاة مال'}
+                          {r.decision === 'denied' && '🔴 لا يصرف'}
+                          {r.decision === 'approved' && '🟢 موافق على الصرف'}
+                          {r.decision === 'rejected' && '🔴 غير موافق'}
+                          {r.decision === 'needs_info' && '🟡 يحتاج معلومات إضافية'}
+                        </td>
+                        <td>{r.notes || '—'}</td>
+                        <td style={{ fontSize: '0.8rem' }}>{new Date(r.createdAt).toLocaleString('ar-EG')}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )
+          ) : (
+            myReview && (
+              <div style={{ marginBottom: '20px' }}>
+                <h3 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '8px', color: '#1f2937' }}>
+                  👥 توصيتك المسجلة كعضو لجنة طبية
+                </h3>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>عضو اللجنة</th>
+                      <th>الرأي والتوصية</th>
+                      <th>الملاحظات</th>
+                      <th>التاريخ والوقت</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td style={{ fontWeight: 600 }}>{myReview.user.name}</td>
+                      <td>
+                        {myReview.decision === 'paid' && '🔵 يصرف بمال'}
+                        {myReview.decision === 'charity' && '🟢 يصرف كصدقة'}
+                        {myReview.decision === 'zakat' && '🟣 يصرف كزكاة مال'}
+                        {myReview.decision === 'denied' && '🔴 لا يصرف'}
+                        {myReview.decision === 'approved' && '🟢 موافق على الصرف'}
+                        {myReview.decision === 'rejected' && '🔴 غير موافق'}
+                        {myReview.decision === 'needs_info' && '🟡 يحتاج معلومات إضافية'}
+                      </td>
+                      <td>{myReview.notes || '—'}</td>
+                      <td style={{ fontSize: '0.8rem' }}>{new Date(myReview.createdAt).toLocaleString('ar-EG')}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            )
           )
         )}
 
@@ -233,8 +253,9 @@ export default async function VisitPrintPage({ params }: { params: Promise<{ id:
               <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: 0, color: '#065f46' }}>
                 ⚖️ القرار النهائي المعتمد للصرف
               </h3>
-              <span style={{ fontWeight: 700, fontSize: '1rem', color: visit.finalDecision.decisionType === 'denied' ? '#b91c1c' : '#047857' }}>
-                {visit.finalDecision.decisionType === 'charity' ? '✅ يصرف كصدقة (مجاناً بالكامل)' :
+              <span style={{ fontWeight: 700, fontSize: '1rem', color: (visit.finalDecision.decisionType === 'rejected' || visit.finalDecision.decisionType === 'denied') ? '#b91c1c' : '#047857' }}>
+                {visit.finalDecision.decisionType === 'approved' ? '🟢 يستحق الصرف (موافقة)' :
+                 visit.finalDecision.decisionType === 'charity' ? '✅ يصرف كصدقة (مجاناً بالكامل)' :
                  visit.finalDecision.decisionType === 'paid' ? '🔵 يصرف بمقابل مالي' : '❌ لا يصرف (مرفوض)'}
               </span>
             </div>
@@ -283,7 +304,7 @@ export default async function VisitPrintPage({ params }: { params: Promise<{ id:
 
           <div style={{ textAlign: 'center', minWidth: '180px' }}>
             <div style={{ fontSize: '0.85rem', color: '#4b5563', marginBottom: '40px' }}>
-              الطبيب المسؤول: {visit.finalDecision?.doctorName || 'د. الطبيب المختص'}
+              الطبيب المسؤول: {visit.finalDecision?.doctorName || 'د. الطبيب المعتمد'}
             </div>
             <div style={{ borderTop: '1px solid #9ca3af', paddingTop: '4px', fontSize: '0.8rem' }}>
               الاعتماد والتوقيع

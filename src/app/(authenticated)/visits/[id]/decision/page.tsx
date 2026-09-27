@@ -30,21 +30,25 @@ export default async function DecisionPage({ params }: { params: Promise<{ id: s
         include: { user: { select: { name: true } } },
         orderBy: { createdAt: 'desc' },
       },
+      finalDecision: true,
     },
   })
 
   if (!visit) return notFound()
 
   // Calculate approval stats among committee
-  const approvedCount = visit.committeeReviews.filter((r) => r.decision === 'approved').length
-  const rejectedCount = visit.committeeReviews.filter((r) => r.decision === 'rejected').length
-  const needsInfoCount = visit.committeeReviews.filter((r) => r.decision === 'needs_info').length
+  const paidCount = visit.committeeReviews.filter((r) => r.decision === 'paid').length
+  const charityCount = visit.committeeReviews.filter((r) => r.decision === 'charity').length
+  const zakatCount = visit.committeeReviews.filter((r) => r.decision === 'zakat').length
+  const deniedCount = visit.committeeReviews.filter((r) => r.decision === 'denied').length
+  const legacyApproved = visit.committeeReviews.filter((r) => r.decision === 'approved').length
+  const legacyRejected = visit.committeeReviews.filter((r) => r.decision === 'rejected').length
 
   return (
     <>
       <div className="page-header">
         <div>
-          <h1>⚖️ إصدار القرار النهائي للطبيب</h1>
+          <h1>⚖️ إصدار القرار النهائي للطبيب المعتمد</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
             المريض: {visit.patient.fullName} ({visit.patient.patientId}) — زيارة {visit.specialty}
           </p>
@@ -75,37 +79,34 @@ export default async function DecisionPage({ params }: { params: Promise<{ id: s
             </div>
           )}
 
-          <h3 style={{ fontSize: '0.9rem', marginBottom: '8px', borderTop: '1px solid var(--border)', paddingTop: '10px', marginTop: '12px' }}>
-            💊 الأدوية بالروشتة ({visit.medications.length})
-          </h3>
-          {visit.medications.length === 0 ? (
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-              {visit.prescriptionImage
-                ? 'تم إرفاق صورة الروشتة الأصلية أعلاه (يمكن الاطلاع عليها مباشرة وتكبيرها).'
-                : 'لا توجد أدوية مسجلة في هذه الزيارة.'}
-            </p>
-          ) : (
-            <div className="table-container">
-              <table>
-                <thead>
-                  <tr>
-                    <th>الدواء</th>
-                    <th>الجرعة والتكرار</th>
-                    <th>المدة</th>
-                    <th>الكمية</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {visit.medications.map((m) => (
-                    <tr key={m.id}>
-                      <td style={{ fontWeight: 600 }}>{m.name} {m.concentration || ''}</td>
-                      <td>{[m.dosage, m.frequency].filter(Boolean).join(' • ') || '—'}</td>
-                      <td>{m.duration || '—'}</td>
-                      <td style={{ color: 'var(--primary)' }}>{m.quantity || '—'}</td>
+          {/* Previous/Existing Medications preview */}
+          {visit.medications.length > 0 && (
+            <div style={{ marginTop: '14px', borderTop: '1px solid var(--border)', paddingTop: '10px' }}>
+              <h3 style={{ fontSize: '0.9rem', marginBottom: '8px', color: 'var(--text-secondary)' }}>
+                💊 الأدوية المفرغة حالياً ({visit.medications.length}) — يمكنك تعديلها أو الإضافة عليها بالأسفل
+              </h3>
+              <div className="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>الدواء</th>
+                      <th>الجرعة والتكرار</th>
+                      <th>المدة</th>
+                      <th>الكمية المقررة</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {visit.medications.map((m) => (
+                      <tr key={m.id}>
+                        <td style={{ fontWeight: 600 }}>{m.name} {m.concentration || ''}</td>
+                        <td>{[m.dosage, m.frequency].filter(Boolean).join(' • ') || '—'}</td>
+                        <td>{m.duration || '—'}</td>
+                        <td style={{ color: 'var(--primary)' }}>{m.quantity || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>
@@ -124,16 +125,35 @@ export default async function DecisionPage({ params }: { params: Promise<{ id: s
 
           {/* Quick Stats Pill */}
           {visit.committeeReviews.length > 0 && (
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '14px', flexWrap: 'wrap' }}>
-              <span className="badge badge-approved" style={{ fontSize: '0.8rem' }}>
-                🟢 موافق: {approvedCount}
-              </span>
-              <span className="badge badge-rejected" style={{ fontSize: '0.8rem' }}>
-                🔴 غير موافق: {rejectedCount}
-              </span>
-              {needsInfoCount > 0 && (
-                <span className="badge badge-committee" style={{ fontSize: '0.8rem' }}>
-                  🟡 يحتاج معلومات: {needsInfoCount}
+            <div style={{ display: 'flex', gap: '6px', marginBottom: '14px', flexWrap: 'wrap' }}>
+              {charityCount > 0 && (
+                <span className="badge badge-approved" style={{ fontSize: '0.78rem' }}>
+                  🟢 صدقة: {charityCount}
+                </span>
+              )}
+              {paidCount > 0 && (
+                <span className="badge badge-doctor" style={{ fontSize: '0.78rem' }}>
+                  🔵 بمال: {paidCount}
+                </span>
+              )}
+              {zakatCount > 0 && (
+                <span className="badge badge-committee" style={{ fontSize: '0.78rem' }}>
+                  🟣 زكاة: {zakatCount}
+                </span>
+              )}
+              {deniedCount > 0 && (
+                <span className="badge badge-rejected" style={{ fontSize: '0.78rem' }}>
+                  🔴 لا يصرف: {deniedCount}
+                </span>
+              )}
+              {legacyApproved > 0 && (
+                <span className="badge badge-approved" style={{ fontSize: '0.78rem' }}>
+                  🟢 موافق: {legacyApproved}
+                </span>
+              )}
+              {legacyRejected > 0 && (
+                <span className="badge badge-rejected" style={{ fontSize: '0.78rem' }}>
+                  🔴 غير موافق: {legacyRejected}
                 </span>
               )}
             </div>
@@ -154,6 +174,10 @@ export default async function DecisionPage({ params }: { params: Promise<{ id: s
                     </span>
                   </div>
                   <div>
+                    {r.decision === 'paid' && <span className="badge badge-doctor">🔵 يصرف بمال</span>}
+                    {r.decision === 'charity' && <span className="badge badge-approved">🟢 يصرف كصدقة</span>}
+                    {r.decision === 'zakat' && <span className="badge badge-committee">🟣 يصرف كزكاة مال</span>}
+                    {r.decision === 'denied' && <span className="badge badge-rejected">🔴 لا يصرف</span>}
                     {r.decision === 'approved' && <span className="badge badge-approved">🟢 موافق على الصرف</span>}
                     {r.decision === 'rejected' && <span className="badge badge-rejected">🔴 غير موافق</span>}
                     {r.decision === 'needs_info' && <span className="badge badge-committee">🟡 يحتاج معلومات إضافية</span>}
@@ -170,9 +194,16 @@ export default async function DecisionPage({ params }: { params: Promise<{ id: s
         </div>
       </div>
 
-      {/* Decision Form Card */}
+      {/* Decision Form Card with Dynamic Medication Entry */}
       <div className="card" style={{ borderTop: '3px solid var(--green)' }}>
-        <DoctorDecisionForm visitId={visit.id} />
+        <DoctorDecisionForm
+          visitId={visit.id}
+          initialDecisionType={visit.finalDecision?.decisionType || 'approved'}
+          initialReason={visit.finalDecision?.reason}
+          initialDuration={visit.finalDecision?.dispenseDuration}
+          initialSchedule={visit.finalDecision?.dispenseSchedule}
+          existingMedications={visit.medications}
+        />
       </div>
     </>
   )

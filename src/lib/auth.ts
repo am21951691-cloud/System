@@ -5,11 +5,13 @@ const SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'clinic-secret-key-change-in-production'
 )
 
+export type UserRole = 'admin' | 'doctor' | 'member' | 'accountant'
+
 export interface SessionUser {
   userId: number
   username: string
   name: string
-  role: string
+  role: UserRole | string
 }
 
 export async function createToken(user: SessionUser) {

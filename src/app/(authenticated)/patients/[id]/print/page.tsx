@@ -1,13 +1,16 @@
 import { prisma } from '@/lib/db'
 import { getSession } from '@/lib/auth'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import PrintTriggerButton from '@/components/PrintTriggerButton'
 
 export default async function PatientHistoryPrintPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const session = await getSession()
-  if (!session) return null
+  if (!session) redirect('/login')
+
+  const isMember = session.role === 'member'
+  const isAccountant = session.role === 'accountant'
 
   const patient = await prisma.patient.findUnique({
     where: { id: parseInt(id) },
@@ -15,7 +18,7 @@ export default async function PatientHistoryPrintPage({ params }: { params: Prom
       visits: {
         orderBy: { createdAt: 'desc' },
         include: {
-          medications: true,
+          medications: !isMember,
           committeeReviews: {
             include: { user: { select: { name: true } } },
           },
@@ -114,15 +117,23 @@ export default async function PatientHistoryPrintPage({ params }: { params: Prom
                   </span>
                 </div>
 
-                {/* Clinical Notes */}
+                {/* Clinical Notes (Redacted for Accountant) */}
                 <div style={{ fontSize: '0.85rem', marginBottom: '12px' }}>
-                  {v.diagnosis && <div><strong>التشخيص:</strong> {v.diagnosis}</div>}
-                  {v.generalCondition && <div><strong>الحالة العامة:</strong> {v.generalCondition}</div>}
-                  {v.description && <div><strong>الوصف:</strong> {v.description}</div>}
+                  <div>
+                    <strong>التشخيص:</strong>{' '}
+                    {isAccountant ? <span style={{ fontStyle: 'italic', color: '#6b7280' }}>🔒 محجوب (صلاحية محاسب)</span> : (v.diagnosis || '—')}
+                  </div>
+                  <div>
+                    <strong>الحالة العامة:</strong>{' '}
+                    {isAccountant ? <span style={{ fontStyle: 'italic', color: '#6b7280' }}>🔒 محجوب (صلاحية محاسب)</span> : (v.generalCondition || 'مستقرة')}
+                  </div>
+                  {!isAccountant && v.description && (
+                    <div style={{ marginTop: '4px' }}><strong>الوصف:</strong> {v.description}</div>
+                  )}
                 </div>
 
-                {/* Prescription Image (if attached) */}
-                {v.prescriptionImage && (
+                {/* Prescription Image (Hidden for Accountant) */}
+                {!isAccountant && v.prescriptionImage && (
                   <div className="prescription-print-box" style={{ margin: '12px 0' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                       <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#1f2937' }}>
@@ -142,26 +153,28 @@ export default async function PatientHistoryPrintPage({ params }: { params: Prom
                   </div>
                 )}
 
-                {/* Medications Table */}
-                {v.medications.length > 0 && (
+                {/* Medications Table (Strictly hidden for committee members) */}
+                {!isMember && v.medications && v.medications.length > 0 && (
                   <div style={{ marginBottom: '12px' }}>
-                    <div style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: '4px' }}>💊 الأدوية الموصوفة:</div>
+                    <div style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: '4px' }}>💊 الأدوية المعتمدة للصرف:</div>
                     <table>
                       <thead>
                         <tr>
                           <th>الدواء والتركيز</th>
-                          <th>الجرعة والتكرار</th>
+                          {!isAccountant && <th>الجرعة والتكرار</th>}
                           <th>المدة</th>
                           <th>الكمية المقررة</th>
+                          <th>فترة الصرف الدوري</th>
                         </tr>
                       </thead>
                       <tbody>
                         {v.medications.map((m) => (
                           <tr key={m.id}>
                             <td style={{ fontWeight: 600 }}>{m.name} {m.concentration || ''}</td>
-                            <td>{[m.dosage, m.frequency].filter(Boolean).join(' • ') || '—'}</td>
+                            {!isAccountant && <td>{[m.dosage, m.frequency].filter(Boolean).join(' • ') || '—'}</td>}
                             <td>{m.duration || '—'}</td>
-                            <td>{m.quantity || '—'}</td>
+                            <td style={{ fontWeight: 700, color: '#047857' }}>{m.quantity || m.totalQuantity || '—'}</td>
+                            <td>{m.dispenseInterval || '—'}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -173,12 +186,15 @@ export default async function PatientHistoryPrintPage({ params }: { params: Prom
                 {v.finalDecision ? (
                   <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '4px', padding: '8px 12px', fontSize: '0.85rem', marginTop: '8px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <strong style={{ color: v.finalDecision.decisionType === 'denied' ? '#dc2626' : '#16a34a' }}>
-                        القرار: {v.finalDecision.decisionType === 'charity' ? '🟢 صرف كصدقة' : v.finalDecision.decisionType === 'paid' ? '🔵 صرف بمقابل' : '🔴 لم يصرف'}
+                      <strong style={{ color: (v.finalDecision.decisionType === 'rejected' || v.finalDecision.decisionType === 'denied') ? '#dc2626' : '#16a34a' }}>
+                        القرار:{' '}
+                        {v.finalDecision.decisionType === 'approved' ? '🟢 يستحق الصرف (موافقة)' :
+                         v.finalDecision.decisionType === 'charity' ? '🟢 صرف كصدقة' :
+                         v.finalDecision.decisionType === 'paid' ? '🔵 صرف بمقابل' : '🔴 لا يصرف (مرفوض)'}
                       </strong>
                       <span style={{ color: '#4b5563' }}>الطبيب: {v.finalDecision.doctorName || 'د. المختص'}</span>
                     </div>
-                    {(v.finalDecision.dispenseDuration || v.finalDecision.dispenseQuantity) && (
+                    {(v.finalDecision.dispenseDuration || v.finalDecision.dispenseQuantity || v.finalDecision.dispenseSchedule) && (
                       <div style={{ color: '#374151', marginTop: '4px' }}>
                         المدة: {v.finalDecision.dispenseDuration || '—'} | الكمية: {v.finalDecision.dispenseQuantity || '—'} | الجدول: {v.finalDecision.dispenseSchedule || '—'}
                       </div>

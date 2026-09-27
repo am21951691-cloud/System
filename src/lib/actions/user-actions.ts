@@ -32,7 +32,7 @@ export async function createUser(formData: FormData) {
   if (!password || password.length < 6) {
     throw new Error('كلمة المرور يجب ألا تقل عن 6 أحرف')
   }
-  if (!['admin', 'doctor', 'member'].includes(role)) {
+  if (!['admin', 'doctor', 'member', 'accountant'].includes(role)) {
     throw new Error('نوع الحساب غير صالح')
   }
 
@@ -88,6 +88,89 @@ export async function toggleUserActive(userId: number) {
     session.userId,
     updated.active ? 'تفعيل حساب مستخدم' : 'تعطيل حساب مستخدم',
     `قام المدير ${session.name} بـ ${updated.active ? 'تفعيل' : 'تعطيل'} حساب [${user.username}]`,
+    'user',
+    userId
+  )
+
+  redirect('/admin/users')
+}
+
+export async function updateUser(userId: number, formData: FormData) {
+  const session = await getSession()
+  if (!session || session.role !== 'admin') {
+    throw new Error('غير مصرح لك بتعديل بيانات المستخدمين')
+  }
+
+  const username = sanitizeInput(formData.get('username'), 50)
+  const name = sanitizeInput(formData.get('name'), 100)
+  const role = sanitizeInput(formData.get('role'), 20)
+
+  if (!username || username.length < 3) {
+    throw new Error('اسم المستخدم يجب ألا يقل عن 3 أحرف')
+  }
+  if (!name) {
+    throw new Error('الاسم الكامل مطلوب')
+  }
+  if (!role || !['admin', 'doctor', 'member', 'accountant'].includes(role)) {
+    throw new Error('نوع الحساب غير صالح')
+  }
+
+  // Check if changing to an existing username
+  const existing = await prisma.user.findFirst({
+    where: { username, id: { not: userId } },
+  })
+  if (existing) {
+    throw new Error('اسم المستخدم مسجل بالفعل بحساب آخر')
+  }
+
+  const oldUser = await prisma.user.findUnique({ where: { id: userId } })
+  if (!oldUser) throw new Error('المستخدم غير موجود')
+
+  if (session.userId === userId && role !== 'admin') {
+    throw new Error('لا يمكنك تغيير دور حسابك الشخصي من مدير منعاً لفقدان الوصول')
+  }
+
+  const updated = await prisma.user.update({
+    where: { id: userId },
+    data: { username, name, role },
+  })
+
+  await logAudit(
+    session.userId,
+    'تعديل بيانات مستخدم',
+    `قام المدير ${session.name} بتعديل حساب [${oldUser.username}] -> الاسم: ${updated.name}, الدور: ${updated.role}`,
+    'user',
+    userId
+  )
+
+  redirect('/admin/users')
+}
+
+export async function resetUserPassword(userId: number, formData: FormData) {
+  const session = await getSession()
+  if (!session || session.role !== 'admin') {
+    throw new Error('غير مصرح لك بإعادة تعيين كلمات المرور')
+  }
+
+  const newPassword = String(formData.get('newPassword') || '').trim()
+  if (!newPassword || newPassword.length < 6) {
+    throw new Error('كلمة المرور الجديدة يجب ألا تقل عن 6 أحرف')
+  }
+
+  const targetUser = await prisma.user.findUnique({ where: { id: userId } })
+  if (!targetUser) throw new Error('المستخدم غير موجود')
+
+  const hashedPassword = await bcrypt.hash(newPassword, 10)
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { password: hashedPassword },
+  })
+
+  await logAudit(
+    session.userId,
+    'إعادة تعيين كلمة المرور',
+    `قام المدير ${session.name} بإعادة تعيين كلمة المرور لحساب [${targetUser.username}]`,
     'user',
     userId
   )

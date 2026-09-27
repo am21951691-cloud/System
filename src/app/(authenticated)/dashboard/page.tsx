@@ -92,6 +92,8 @@ export default async function DashboardPage({
               ? `مرحباً بك، مدير النظام: ${session.name}`
               : session.role === 'doctor'
               ? `مرحباً بك د. ${session.name}`
+              : session.role === 'accountant'
+              ? `مرحباً بك، المحاسب: ${session.name}`
               : `مرحباً بك، عضو اللجنة الطبية: ${session.name}`}
           </p>
         </div>
@@ -368,8 +370,10 @@ export default async function DashboardPage({
                       <td>
                         {visit.finalDecision ? (
                           <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>
-                            {visit.finalDecision.decisionType === 'charity' ? '🟢 كفالة / صدقة' :
-                             visit.finalDecision.decisionType === 'paid' ? '🔵 بمقابل مالي' : '🔴 رفض الصرف'}
+                            {visit.finalDecision.decisionType === 'approved' ? '🟢 يستحق الصرف' :
+                             visit.finalDecision.decisionType === 'charity' ? '🟢 كفالة / صدقة' :
+                             visit.finalDecision.decisionType === 'paid' ? '🔵 بمقابل مالي' :
+                             visit.finalDecision.decisionType === 'rejected' || visit.finalDecision.decisionType === 'denied' ? '🔴 لا يصرف' : '⚖️ قرار معتمد'}
                           </span>
                         ) : (
                           <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>قيد المعالجة</span>

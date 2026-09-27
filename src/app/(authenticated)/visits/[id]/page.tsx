@@ -11,11 +11,16 @@ export default async function VisitPage({ params }: { params: Promise<{ id: stri
   const session = await getSession()
   if (!session) return redirect('/login')
 
+  const isMember = session.role === 'member'
+  const isAccountant = session.role === 'accountant'
+  const canSeeAllReviews = session.role === 'doctor' || session.role === 'admin'
+
+  // Defense-in-depth: Strictly exclude medications for committee members at database query level
   const visit = await prisma.visit.findUnique({
     where: { id: parseInt(id) },
     include: {
       patient: true,
-      medications: true,
+      medications: !isMember,
       committeeReviews: {
         include: { user: { select: { name: true } } },
         orderBy: { createdAt: 'desc' },
@@ -29,8 +34,6 @@ export default async function VisitPage({ params }: { params: Promise<{ id: stri
   const sendToCommitteeWithId = sendToCommittee.bind(null, visit.id)
   const sendToDoctorWithId = sendToDoctor.bind(null, visit.id)
 
-  // Confidentiality: Only doctor and admin can see all members' opinions
-  const canSeeAllReviews = session.role === 'doctor' || session.role === 'admin'
   const myReview = visit.committeeReviews.find((r) => r.userId === session.userId)
 
   return (
@@ -39,7 +42,7 @@ export default async function VisitPage({ params }: { params: Promise<{ id: stri
         <div>
           <h1>📄 تفاصيل الزيارة</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-            {visit.patient.fullName} — {visit.patient.patientId}
+            المريض: {visit.patient.fullName} ({visit.patient.patientId}) — {visit.specialty}
           </p>
         </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -57,36 +60,57 @@ export default async function VisitPage({ params }: { params: Promise<{ id: stri
         </div>
       </div>
 
-      {/* Basic Visit Information */}
+      {/* Basic Visit Information (Redacting clinical fields for accountant) */}
       <div className="card" style={{ marginBottom: '24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <h2 style={{ fontSize: '1rem' }}>بيانات الزيارة</h2>
+          <h2 style={{ fontSize: '1rem', margin: 0 }}>بيانات الزيارة</h2>
           <StatusBadge status={visit.status} />
         </div>
+
         <div className="grid-3">
           <div>
             <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>التخصص</div>
-            <div>{visit.specialty}</div>
+            <div style={{ fontWeight: 600 }}>{visit.specialty}</div>
           </div>
+
           <div>
-            <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>التشخيص</div>
-            <div>{visit.diagnosis || '—'}</div>
+            <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>التشخيص الطبي</div>
+            <div>
+              {isAccountant ? (
+                <span style={{ color: 'var(--text-secondary)', fontStyle: 'italic', fontSize: '0.85rem' }}>
+                  🔒 محجوب (صلاحية محاسب)
+                </span>
+              ) : (
+                visit.diagnosis || '—'
+              )}
+            </div>
           </div>
+
           <div>
             <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>الحالة العامة</div>
-            <div>{visit.generalCondition || '—'}</div>
+            <div>
+              {isAccountant ? (
+                <span style={{ color: 'var(--text-secondary)', fontStyle: 'italic', fontSize: '0.85rem' }}>
+                  🔒 محجوب (صلاحية محاسب)
+                </span>
+              ) : (
+                visit.generalCondition || '—'
+              )}
+            </div>
           </div>
         </div>
-        {visit.description && (
+
+        {/* Clinical description is hidden for accountant */}
+        {!isAccountant && visit.description && (
           <div style={{ marginTop: '16px', padding: '12px', background: 'var(--bg-input)', borderRadius: 'var(--radius-sm)' }}>
-            <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginBottom: '4px' }}>وصف الحالة</div>
-            <div style={{ fontSize: '0.9rem' }}>{visit.description}</div>
+            <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginBottom: '4px' }}>وصف الحالة وتفاصيل الكشف</div>
+            <div style={{ fontSize: '0.9rem', lineHeight: '1.7' }}>{visit.description}</div>
           </div>
         )}
       </div>
 
-      {/* Uploaded Prescription Image Viewer */}
-      {visit.prescriptionImage && (
+      {/* Uploaded Prescription Image Viewer (Hidden for accountant to prevent viewing clinical notes) */}
+      {!isAccountant && visit.prescriptionImage && (
         <div className="card" style={{ marginBottom: '24px' }}>
           <h2 style={{ fontSize: '1rem', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span>📷</span>
@@ -96,20 +120,32 @@ export default async function VisitPage({ params }: { params: Promise<{ id: stri
         </div>
       )}
 
-      {/* Prescription Medications Table */}
-      {visit.medications.length > 0 && (
+      {/* Prescription Medications Table (Strictly hidden for committee members) */}
+      {!isMember && visit.medications && visit.medications.length > 0 && (
         <div className="card" style={{ marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '1rem', marginBottom: '16px' }}>💊 الأدوية المفرغة بالروشتة</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h2 style={{ fontSize: '1rem', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>💊</span>
+              <span>الأدوية المفرغة والمعتمدة للصرف ({visit.medications.length})</span>
+            </h2>
+            {isAccountant && (
+              <span style={{ fontSize: '0.78rem', color: 'var(--primary)' }}>
+                💰 عرض كميات الصرف المالي والجدولة
+              </span>
+            )}
+          </div>
+
           <div className="table-container">
             <table>
               <thead>
                 <tr>
                   <th>الدواء</th>
                   <th>التركيز</th>
-                  <th>الجرعة</th>
-                  <th>عدد المرات</th>
-                  <th>مدة العلاج</th>
+                  {!isAccountant && <th>الجرعة والتكرار</th>}
+                  <th>المدة</th>
                   <th>الكمية المقررة</th>
+                  <th>فترة الصرف الدوري</th>
+                  {visit.medications.some((m) => m.notes) && <th>ملاحظات</th>}
                 </tr>
               </thead>
               <tbody>
@@ -117,10 +153,17 @@ export default async function VisitPage({ params }: { params: Promise<{ id: stri
                   <tr key={med.id}>
                     <td style={{ fontWeight: 600 }}>{med.name}</td>
                     <td>{med.concentration || '—'}</td>
-                    <td>{med.dosage || '—'}</td>
-                    <td>{med.frequency || '—'}</td>
+                    {!isAccountant && (
+                      <td>{[med.dosage, med.frequency, med.usageMethod].filter(Boolean).join(' • ') || '—'}</td>
+                    )}
                     <td>{med.duration || '—'}</td>
-                    <td>{med.quantity || '—'}</td>
+                    <td style={{ color: 'var(--primary)', fontWeight: 600 }}>
+                      {med.quantity || med.totalQuantity || '—'}
+                    </td>
+                    <td>{med.dispenseInterval || '—'}</td>
+                    {visit.medications.some((m) => m.notes) && (
+                      <td style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{med.notes || '—'}</td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -129,120 +172,154 @@ export default async function VisitPage({ params }: { params: Promise<{ id: stri
         </div>
       )}
 
-      {/* Committee Reviews Section (Respecting confidentiality: only doctor & admin see all) */}
-      {canSeeAllReviews ? (
-        visit.committeeReviews.length > 0 && (
-          <div className="card" style={{ marginBottom: '24px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h2 style={{ fontSize: '1rem', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>📋</span>
-                <span>مراجعات وآراء أعضاء اللجنة ({visit.committeeReviews.length})</span>
-              </h2>
-              <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                🔒 معروضة بالكامل لمدير النظام والطبيب المعتمد
-              </span>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {visit.committeeReviews.map((review) => (
-                <div key={review.id} style={{
-                  padding: '14px 16px',
-                  background: 'var(--bg-input)',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--border)',
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <span style={{ fontWeight: 600 }}>{review.user.name}</span>
-                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
-                      {new Date(review.createdAt).toLocaleDateString('ar-EG')}
-                    </span>
-                  </div>
-                  <div>
-                    <span className={`badge ${review.decision === 'approved' ? 'badge-approved' : review.decision === 'rejected' ? 'badge-rejected' : 'badge-committee'}`}>
-                      {review.decision === 'approved' ? '🟢 موافق على الصرف' : review.decision === 'rejected' ? '🔴 غير موافق على الصرف' : '🟡 يحتاج معلومات إضافية'}
-                    </span>
-                  </div>
-                  {review.notes && (
-                    <div style={{ marginTop: '8px', fontSize: '0.9rem', color: 'var(--text-primary)', background: 'rgba(255,255,255,0.03)', padding: '8px 12px', borderRadius: '4px' }}>
-                      <strong>ملاحظات العضو:</strong> {review.notes}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )
-      ) : (
-        /* Regular member view: only see their own submitted review */
-        myReview && (
-          <div className="card" style={{ marginBottom: '24px', borderLeft: '4px solid var(--green)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <h2 style={{ fontSize: '1rem', margin: 0, color: 'var(--green)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span>✅</span>
-                <span>رأيك المسجل كعضو لجنة</span>
-              </h2>
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                {new Date(myReview.createdAt).toLocaleDateString('ar-EG')}
-              </span>
-            </div>
-            <div>
-              <span className={`badge ${myReview.decision === 'approved' ? 'badge-approved' : myReview.decision === 'rejected' ? 'badge-rejected' : 'badge-committee'}`}>
-                {myReview.decision === 'approved' ? '🟢 موافق على الصرف' : myReview.decision === 'rejected' ? '🔴 غير موافق على الصرف' : '🟡 يحتاج معلومات إضافية'}
-              </span>
-            </div>
-            {myReview.notes && (
-              <div style={{ marginTop: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                {myReview.notes}
+      {/* Committee Reviews Section (Confidentiality: only Doctor & Admin see all, Member sees only their own, Accountant sees financial verdict) */}
+      {!isAccountant && (
+        canSeeAllReviews ? (
+          visit.committeeReviews.length > 0 && (
+            <div className="card" style={{ marginBottom: '24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h2 style={{ fontSize: '1rem', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>👥</span>
+                  <span>توصيات أعضاء اللجنة الطبية ({visit.committeeReviews.length})</span>
+                </h2>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                  🔒 معروضة بالكامل لمدير النظام والطبيب المعتمد
+                </span>
               </div>
-            )}
-            <div style={{ marginTop: '10px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              🔒 تم حفظ رأيك بنجاح، وهو معروض للطبيب المعتمد ومدير النظام لاتخاذ القرار النهائي.
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {visit.committeeReviews.map((review) => (
+                  <div
+                    key={review.id}
+                    style={{
+                      padding: '14px 16px',
+                      background: 'var(--bg-input)',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--border)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <span style={{ fontWeight: 600 }}>{review.user.name}</span>
+                      <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+                        {new Date(review.createdAt).toLocaleDateString('ar-EG')}
+                      </span>
+                    </div>
+                    <div>
+                      {review.decision === 'paid' && <span className="badge badge-doctor">🔵 يصرف بمال</span>}
+                      {review.decision === 'charity' && <span className="badge badge-approved">🟢 يصرف كصدقة</span>}
+                      {review.decision === 'zakat' && <span className="badge badge-committee">🟣 يصرف كزكاة مال</span>}
+                      {review.decision === 'denied' && <span className="badge badge-rejected">🔴 لا يصرف</span>}
+                      {review.decision === 'approved' && <span className="badge badge-approved">🟢 موافق على الصرف</span>}
+                      {review.decision === 'rejected' && <span className="badge badge-rejected">🔴 غير موافق على الصرف</span>}
+                      {review.decision === 'needs_info' && <span className="badge badge-committee">🟡 يحتاج معلومات إضافية</span>}
+                    </div>
+                    {review.notes && (
+                      <div
+                        style={{
+                          marginTop: '8px',
+                          fontSize: '0.9rem',
+                          color: 'var(--text-primary)',
+                          background: 'rgba(255,255,255,0.03)',
+                          padding: '8px 12px',
+                          borderRadius: '4px',
+                        }}
+                      >
+                        <strong>ملاحظات العضو:</strong> {review.notes}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )
+        ) : (
+          /* Regular Member View: Shows only their own review */
+          myReview && (
+            <div className="card" style={{ marginBottom: '24px', borderLeft: '4px solid var(--green)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <h2 style={{ fontSize: '1rem', margin: 0, color: 'var(--green)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>✅</span>
+                  <span>توصيتك المسجلة كعضو لجنة</span>
+                </h2>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                  {new Date(myReview.createdAt).toLocaleDateString('ar-EG')}
+                </span>
+              </div>
+              <div>
+                {myReview.decision === 'paid' && <span className="badge badge-doctor">🔵 يصرف بمال</span>}
+                {myReview.decision === 'charity' && <span className="badge badge-approved">🟢 يصرف كصدقة</span>}
+                {myReview.decision === 'zakat' && <span className="badge badge-committee">🟣 يصرف كزكاة مال</span>}
+                {myReview.decision === 'denied' && <span className="badge badge-rejected">🔴 لا يصرف</span>}
+                {myReview.decision === 'approved' && <span className="badge badge-approved">🟢 موافق على الصرف</span>}
+                {myReview.decision === 'rejected' && <span className="badge badge-rejected">🔴 غير موافق على الصرف</span>}
+                {myReview.decision === 'needs_info' && <span className="badge badge-committee">🟡 يحتاج معلومات إضافية</span>}
+              </div>
+              {myReview.notes && (
+                <div style={{ marginTop: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                  {myReview.notes}
+                </div>
+              )}
+              <div style={{ marginTop: '10px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                🔒 تم حفظ توصيتك بسرية تامة، وهي معروضة للطبيب المعتمد ومدير النظام لاتخاذ القرار النهائي.
+              </div>
+            </div>
+          )
         )
       )}
 
       {/* Final Decision Card */}
       {visit.finalDecision && (
         <div className="card" style={{ marginBottom: '24px', borderTop: '3px solid var(--green)' }}>
-          <h2 style={{ fontSize: '1rem', marginBottom: '16px' }}>⚖️ القرار النهائي</h2>
+          <h2 style={{ fontSize: '1rem', marginBottom: '16px' }}>⚖️ القرار النهائي للطبيب المعتمد</h2>
           <div className="grid-2">
             <div>
               <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>نوع القرار</div>
               <div style={{ fontWeight: 700, fontSize: '1.1rem' }}>
-                {visit.finalDecision.decisionType === 'charity' ? '🟢 خيري (مجاني)' :
-                 visit.finalDecision.decisionType === 'paid' ? '🔵 مدفوع' : '🔴 مرفوض'}
+                {visit.finalDecision.decisionType === 'approved' ? (
+                  <span style={{ color: 'var(--green)' }}>🟢 يستحق الصرف (موافقة)</span>
+                ) : visit.finalDecision.decisionType === 'rejected' || visit.finalDecision.decisionType === 'denied' ? (
+                  <span style={{ color: 'var(--red)' }}>🔴 لا يصرف (رفض)</span>
+                ) : visit.finalDecision.decisionType === 'charity' ? (
+                  <span style={{ color: 'var(--green)' }}>🟢 خيري (مجاني)</span>
+                ) : (
+                  <span style={{ color: '#38bdf8' }}>🔵 مدفوع</span>
+                )}
               </div>
             </div>
             <div>
-              <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>الطبيب</div>
-              <div>{visit.finalDecision.doctorName || '—'}</div>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>الطبيب المعتمد</div>
+              <div style={{ fontWeight: 600 }}>{visit.finalDecision.doctorName || '—'}</div>
             </div>
           </div>
-          <div className="grid-3" style={{ marginTop: '12px' }}>
+
+          <div className="grid-3" style={{ marginTop: '14px' }}>
             {visit.finalDecision.dispenseDuration && (
               <div>
                 <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>مدة الصرف: </span>
-                <div>{visit.finalDecision.dispenseDuration}</div>
+                <div style={{ fontWeight: 600 }}>{visit.finalDecision.dispenseDuration}</div>
               </div>
             )}
             {visit.finalDecision.dispenseQuantity && (
               <div>
                 <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>كمية الصرف: </span>
-                <div>{visit.finalDecision.dispenseQuantity}</div>
+                <div style={{ fontWeight: 600 }}>{visit.finalDecision.dispenseQuantity}</div>
               </div>
             )}
             {visit.finalDecision.dispenseSchedule && (
               <div>
                 <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>جدول الصرف: </span>
-                <div>{visit.finalDecision.dispenseSchedule}</div>
+                <div style={{ fontWeight: 600 }}>{visit.finalDecision.dispenseSchedule}</div>
               </div>
             )}
           </div>
+
+          {/* Reason / Pharmacy instructions (shown if present and not pure internal note) */}
           {visit.finalDecision.reason && (
-            <div style={{ marginTop: '12px', padding: '12px', background: 'var(--bg-input)', borderRadius: 'var(--radius-sm)' }}>
-              <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginBottom: '4px' }}>السبب / توجيهات الصرف</div>
-              <div>{visit.finalDecision.reason}</div>
+            <div style={{ marginTop: '14px', padding: '12px', background: 'var(--bg-input)', borderRadius: 'var(--radius-sm)' }}>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginBottom: '4px' }}>
+                توجيهات الصرف وملاحظات الصيدلية
+              </div>
+              <div style={{ fontSize: '0.9rem' }}>{visit.finalDecision.reason}</div>
             </div>
           )}
         </div>
@@ -266,9 +343,11 @@ export default async function VisitPage({ params }: { params: Promise<{ id: stri
 
         {visit.status === 'committee_review' && (
           <>
-            <Link href={`/visits/${visit.id}/committee`} className="btn btn-yellow btn-lg" style={{ flex: 1, minWidth: '200px', justifyContent: 'center' }}>
-              ✍️ تسجيل رأي اللجنة الطبية
-            </Link>
+            {(session.role === 'member' || session.role === 'admin') && (
+              <Link href={`/visits/${visit.id}/committee`} className="btn btn-yellow btn-lg" style={{ flex: 1, minWidth: '200px', justifyContent: 'center' }}>
+                ✍️ تسجيل توصية اللجنة الطبية
+              </Link>
+            )}
             {(session.role === 'doctor' || session.role === 'admin') && (
               <form action={sendToDoctorWithId} style={{ flex: 1, minWidth: '200px' }}>
                 <button type="submit" className="btn btn-primary btn-lg" style={{ width: '100%', justifyContent: 'center' }}>
@@ -282,7 +361,7 @@ export default async function VisitPage({ params }: { params: Promise<{ id: stri
         {visit.status === 'doctor_review' && (
           session.role === 'doctor' || session.role === 'admin' ? (
             <Link href={`/visits/${visit.id}/decision`} className="btn btn-green btn-lg" style={{ flex: 1, minWidth: '240px', justifyContent: 'center' }}>
-              ⚖️ إصدار واعتماد القرار النهائي للصرف
+              ⚖️ إصدار واعتماد القرار النهائي وتفريغ الأدوية
             </Link>
           ) : (
             <div style={{ flex: 1, padding: '12px 18px', background: 'var(--bg-input)', borderRadius: 'var(--radius)', border: '1px solid var(--border)', textAlign: 'center', color: 'var(--text-secondary)' }}>
@@ -293,7 +372,7 @@ export default async function VisitPage({ params }: { params: Promise<{ id: stri
 
         {(visit.status === 'approved' || visit.status === 'rejected') && (session.role === 'doctor' || session.role === 'admin') && (
           <Link href={`/visits/${visit.id}/decision`} className="btn btn-outline" style={{ minWidth: '180px', justifyContent: 'center' }}>
-            ✏️ تعديل القرار النهائي
+            ✏️ تعديل القرار النهائي وتفريغ الأدوية
           </Link>
         )}
       </div>
