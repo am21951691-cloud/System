@@ -26,9 +26,20 @@ export default async function AuditLogPage() {
             سجل غير قابل للتعديل يوثق كافة العمليات التي تمت في النظام مع اسم المستخدم والتاريخ والوقت.
           </p>
         </div>
-        <Link href="/dashboard" className="btn btn-outline">
-          ← لوحة التحكم
-        </Link>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <a
+            href="/api/export/audit"
+            download
+            className="btn btn-primary"
+            style={{ fontSize: '0.88rem', textDecoration: 'none' }}
+            title="تنزيل سجل العمليات والأثر الرقابي بالكامل في ملف Excel منسق"
+          >
+            📥 تصدير السجل إلى Excel
+          </a>
+          <Link href="/dashboard" className="btn btn-outline">
+            ← لوحة التحكم
+          </Link>
+        </div>
       </div>
 
       <div className="card">

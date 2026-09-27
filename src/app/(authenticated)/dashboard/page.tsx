@@ -205,11 +205,31 @@ export default async function DashboardPage({
           <h2 style={{ fontSize: '1.1rem' }}>
             {isPatientsView ? '👥 سجل المرضى المسجلين' : '📋 جدول متابعة الحالات والقرارات'}
           </h2>
-          <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-            {isPatientsView
-              ? `إجمالي المسجلين: ${patientsList.length} مريض`
-              : `إجمالي المعروض: ${visits.length} حالة`}
-          </span>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <a
+              href={`/api/export/cases${activeStatus !== 'all' ? `?status=${activeStatus}` : ''}`}
+              download
+              className="btn btn-outline"
+              style={{
+                borderColor: 'var(--green)',
+                color: 'var(--green)',
+                fontSize: '0.85rem',
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+              title="تصدير هذه البيانات بالكامل بتنسيق Excel منسق مع كافة بيانات المريض والقرار"
+            >
+              <span>📥</span>
+              <span>تصدير {isPatientsView ? 'سجل المرضى' : 'كشف الحالات'} إلى Excel</span>
+            </a>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+              {isPatientsView
+                ? `إجمالي المسجلين: ${patientsList.length} مريض`
+                : `إجمالي المعروض: ${visits.length} حالة`}
+            </span>
+          </div>
         </div>
 
         {/* Status Filter Tabs */}
