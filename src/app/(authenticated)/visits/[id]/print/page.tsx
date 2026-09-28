@@ -81,6 +81,7 @@ export default async function VisitPrintPage({ params }: { params: Promise<{ id:
             <div><strong>الجنس:</strong> {visit.patient.gender || '—'}</div>
             <div><strong>المحافظة / المدينة:</strong> {[visit.patient.governorate, visit.patient.city].filter(Boolean).join(' - ') || '—'}</div>
             <div><strong>الحالة الاجتماعية:</strong> {visit.patient.maritalStatus || '—'}</div>
+            <div><strong>اسم الزوج / الزوجة:</strong> {visit.patient.spouseName || '—'}</div>
             <div><strong>الحالة المادية:</strong> {visit.patient.financialStatus || '—'}</div>
             <div><strong>العنوان:</strong> {visit.patient.address || '—'}</div>
           </div>

@@ -43,6 +43,7 @@ export async function createPatient(formData: FormData) {
       phone: sanitizeInput(formData.get('phone'), 30),
       address: sanitizeInput(formData.get('address'), 500),
       maritalStatus: sanitizeInput(formData.get('maritalStatus'), 30),
+      spouseName: sanitizeInput(formData.get('spouseName'), 150),
       financialStatus: sanitizeInput(formData.get('financialStatus'), 30),
       notes: sanitizeInput(formData.get('notes'), 1000),
     },

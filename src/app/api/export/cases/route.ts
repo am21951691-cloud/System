@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
         {
           value: '👥 سجل بيانات المرضى المسجلين بالكامل — نظام إدارة الجمعية الطبية',
           styleId: 'MainTitle',
-          mergeAcross: 12,
+          mergeAcross: 13,
         },
       ],
     })
@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
         {
           value: `تاريخ وساعة التصدير: ${nowArabic}  |  المسؤول المستخرج: ${session.name} (${session.role})  |  إجمالي المرضى: ${patients.length}`,
           styleId: 'SubTitle',
-          mergeAcross: 12,
+          mergeAcross: 13,
         },
       ],
     })
@@ -94,6 +94,7 @@ export async function GET(request: NextRequest) {
         { value: 'المدينة / المركز', styleId: 'Header' },
         { value: 'العنوان بالتفصيل', styleId: 'Header' },
         { value: 'الحالة الاجتماعية', styleId: 'Header' },
+        { value: 'اسم الزوج / الزوجة', styleId: 'Header' },
         { value: 'الحالة المادية والاجتماعية', styleId: 'Header' },
         { value: 'عدد الزيارات والروشتات', styleId: 'Header' },
         { value: 'تاريخ التسجيل بالمنظومة', styleId: 'Header' },
@@ -118,6 +119,7 @@ export async function GET(request: NextRequest) {
           { value: p.city || '—', styleId: centerStyle },
           { value: p.address || '—', styleId: rightStyle },
           { value: p.maritalStatus || '—', styleId: centerStyle },
+          { value: p.spouseName || '—', styleId: rightStyle },
           { value: p.financialStatus || '—', styleId: centerStyle },
           { value: p.visits.length, styleId: centerStyle, type: 'Number' },
           {
@@ -141,6 +143,7 @@ export async function GET(request: NextRequest) {
         { width: 100 }, // المدينة
         { width: 220 }, // العنوان
         { width: 100 }, // الاجتماعية
+        { width: 140 }, // اسم الزوج/الزوجة
         { width: 130 }, // المادية
         { width: 110 }, // الزيارات
         { width: 110 }, // تاريخ التسجيل
@@ -205,7 +208,7 @@ export async function GET(request: NextRequest) {
       {
         value: '📋 جدول متابعة الحالات والقرارات الطبية الشامل — نظام إدارة الجمعية الطبية',
         styleId: 'MainTitle',
-        mergeAcross: 26,
+        mergeAcross: 27,
       },
     ],
   })
@@ -223,7 +226,7 @@ export async function GET(request: NextRequest) {
       {
         value: `تاريخ التصدير: ${nowArabic}  |  المسؤول: ${session.name} (${session.role})  |  النطاق: ${filterDesc} (${visits.length} حالة)`,
         styleId: 'SubTitle',
-        mergeAcross: 26,
+        mergeAcross: 27,
       },
     ],
   })
@@ -243,6 +246,7 @@ export async function GET(request: NextRequest) {
       { value: 'المدينة / المركز', styleId: 'Header' },
       { value: 'العنوان التفصيلي', styleId: 'Header' },
       { value: 'الحالة الاجتماعية', styleId: 'Header' },
+      { value: 'اسم الزوج / الزوجة', styleId: 'Header' },
       { value: 'الحالة المادية', styleId: 'Header' },
       // Visit Details
       { value: 'رقم الزيارة', styleId: 'Header' },
@@ -374,6 +378,7 @@ export async function GET(request: NextRequest) {
         { value: v.patient.city || '—', styleId: centerStyle },
         { value: v.patient.address || '—', styleId: rightStyle },
         { value: v.patient.maritalStatus || '—', styleId: centerStyle },
+        { value: v.patient.spouseName || '—', styleId: rightStyle },
         { value: v.patient.financialStatus || '—', styleId: centerStyle },
         // Visit
         { value: `#${v.id}`, styleId: centerStyle },
@@ -416,6 +421,7 @@ export async function GET(request: NextRequest) {
         { width: 95 },  // المدينة
         { width: 180 }, // العنوان
         { width: 95 },  // الاجتماعية
+        { width: 140 }, // اسم الزوج / الزوجة
         { width: 120 }, // المادية
         { width: 75 },  // رقم الزيارة
         { width: 100 }, // تاريخ الزيارة

@@ -78,6 +78,10 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
             <div>{patient.maritalStatus || '—'}</div>
           </div>
           <div>
+            <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>اسم الزوج / الزوجة</div>
+            <div>{patient.spouseName || '—'}</div>
+          </div>
+          <div>
             <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>الحالة المادية</div>
             <div>{patient.financialStatus || '—'}</div>
           </div>

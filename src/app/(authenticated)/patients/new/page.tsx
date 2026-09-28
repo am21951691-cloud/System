@@ -73,6 +73,10 @@ export default async function NewPatientPage() {
               </select>
             </div>
             <div className="form-group">
+              <label>اسم الزوج / الزوجة</label>
+              <input name="spouseName" placeholder="مثال: اسم الزوج أو الزوجة (إن وجد)" />
+            </div>
+            <div className="form-group">
               <label>الحالة المادية</label>
               <select name="financialStatus">
                 <option value="">اختر</option>

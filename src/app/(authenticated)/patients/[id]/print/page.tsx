@@ -77,6 +77,7 @@ export default async function PatientHistoryPrintPage({ params }: { params: Prom
             <div><strong>الجنس:</strong> {patient.gender || '—'}</div>
             <div><strong>المحافظة / المدينة:</strong> {[patient.governorate, patient.city].filter(Boolean).join(' - ') || '—'}</div>
             <div><strong>الحالة الاجتماعية:</strong> {patient.maritalStatus || '—'}</div>
+            <div><strong>اسم الزوج / الزوجة:</strong> {patient.spouseName || '—'}</div>
             <div><strong>الحالة المادية:</strong> {patient.financialStatus || '—'}</div>
             <div><strong>العنوان:</strong> {patient.address || '—'}</div>
           </div>
