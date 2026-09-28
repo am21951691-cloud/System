@@ -4,6 +4,7 @@ import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import DoctorDecisionForm from '@/components/DoctorDecisionForm'
 import PrescriptionImageViewer from '@/components/PrescriptionImageViewer'
+import LiveCommitteeReviews from '@/components/LiveCommitteeReviews'
 
 export default async function DecisionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -36,13 +37,11 @@ export default async function DecisionPage({ params }: { params: Promise<{ id: s
 
   if (!visit) return notFound()
 
-  // Calculate approval stats among committee
-  const paidCount = visit.committeeReviews.filter((r) => r.decision === 'paid').length
-  const charityCount = visit.committeeReviews.filter((r) => r.decision === 'charity').length
-  const zakatCount = visit.committeeReviews.filter((r) => r.decision === 'zakat').length
-  const deniedCount = visit.committeeReviews.filter((r) => r.decision === 'denied').length
-  const legacyApproved = visit.committeeReviews.filter((r) => r.decision === 'approved').length
-  const legacyRejected = visit.committeeReviews.filter((r) => r.decision === 'rejected').length
+  // Strict Quorum Enforcement:
+  // Must have at least 2 distinct committee reviews before doctor can finalize decision
+  if (visit.committeeReviews.length < 2 && visit.status !== 'approved' && visit.status !== 'rejected') {
+    redirect(`/visits/${visit.id}?error=quorum`)
+  }
 
   return (
     <>
@@ -58,7 +57,7 @@ export default async function DecisionPage({ params }: { params: Promise<{ id: s
         </Link>
       </div>
 
-      {/* Case Details, Prescription & Committee Reviews */}
+      {/* Case Details, Prescription & Live Committee Reviews */}
       <div className="grid-2" style={{ marginBottom: '24px' }}>
         {/* Prescription & Clinical Info */}
         <div className="card">
@@ -111,87 +110,20 @@ export default async function DecisionPage({ params }: { params: Promise<{ id: s
           )}
         </div>
 
-        {/* Committee Reviews Summary (Exclusive to Doctor & Admin) */}
-        <div className="card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <h2 style={{ fontSize: '1rem', margin: 0, color: 'var(--yellow)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span>👥</span>
-              <span>توصيات وآراء أعضاء اللجنة الطبية ({visit.committeeReviews.length})</span>
-            </h2>
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-              (معروضة بالكامل للطبيب)
-            </span>
-          </div>
-
-          {/* Quick Stats Pill */}
-          {visit.committeeReviews.length > 0 && (
-            <div style={{ display: 'flex', gap: '6px', marginBottom: '14px', flexWrap: 'wrap' }}>
-              {charityCount > 0 && (
-                <span className="badge badge-approved" style={{ fontSize: '0.78rem' }}>
-                  🟢 صدقة: {charityCount}
-                </span>
-              )}
-              {paidCount > 0 && (
-                <span className="badge badge-doctor" style={{ fontSize: '0.78rem' }}>
-                  🔵 بمال: {paidCount}
-                </span>
-              )}
-              {zakatCount > 0 && (
-                <span className="badge badge-committee" style={{ fontSize: '0.78rem' }}>
-                  🟣 زكاة: {zakatCount}
-                </span>
-              )}
-              {deniedCount > 0 && (
-                <span className="badge badge-rejected" style={{ fontSize: '0.78rem' }}>
-                  🔴 لا يصرف: {deniedCount}
-                </span>
-              )}
-              {legacyApproved > 0 && (
-                <span className="badge badge-approved" style={{ fontSize: '0.78rem' }}>
-                  🟢 موافق: {legacyApproved}
-                </span>
-              )}
-              {legacyRejected > 0 && (
-                <span className="badge badge-rejected" style={{ fontSize: '0.78rem' }}>
-                  🔴 غير موافق: {legacyRejected}
-                </span>
-              )}
-            </div>
-          )}
-
-          {visit.committeeReviews.length === 0 ? (
-            <div style={{ padding: '16px', background: 'var(--bg-input)', borderRadius: 'var(--radius-sm)', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-              لم يسجل أعضاء اللجنة أي رأي بعد. يمكنك اتخاذ القرار النهائي مباشرة بصفتك طبيباً معتمداً.
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '420px', overflowY: 'auto' }}>
-              {visit.committeeReviews.map((r) => (
-                <div key={r.id} style={{ padding: '12px 14px', background: 'var(--bg-input)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <strong style={{ fontSize: '0.9rem' }}>{r.user.name}</strong>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                      {new Date(r.createdAt).toLocaleString('ar-EG')}
-                    </span>
-                  </div>
-                  <div>
-                    {r.decision === 'paid' && <span className="badge badge-doctor">🔵 يصرف بمال</span>}
-                    {r.decision === 'charity' && <span className="badge badge-approved">🟢 يصرف كصدقة</span>}
-                    {r.decision === 'zakat' && <span className="badge badge-committee">🟣 يصرف كزكاة مال</span>}
-                    {r.decision === 'denied' && <span className="badge badge-rejected">🔴 لا يصرف</span>}
-                    {r.decision === 'approved' && <span className="badge badge-approved">🟢 موافق على الصرف</span>}
-                    {r.decision === 'rejected' && <span className="badge badge-rejected">🔴 غير موافق</span>}
-                    {r.decision === 'needs_info' && <span className="badge badge-committee">🟡 يحتاج معلومات إضافية</span>}
-                  </div>
-                  {r.notes && (
-                    <p style={{ fontSize: '0.85rem', color: 'var(--text-primary)', marginTop: '6px', background: 'rgba(255,255,255,0.03)', padding: '6px 10px', borderRadius: '4px' }}>
-                      {r.notes}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        {/* Live Committee Reviews with Real-time Polling & Sync */}
+        <LiveCommitteeReviews
+          visitId={visit.id}
+          initialReviews={visit.committeeReviews.map((r) => ({
+            id: r.id,
+            userId: r.userId,
+            decision: r.decision,
+            notes: r.notes,
+            createdAt: r.createdAt.toISOString(),
+            user: {
+              name: r.user.name,
+            },
+          }))}
+        />
       </div>
 
       {/* Decision Form Card with Dynamic Medication Entry */}

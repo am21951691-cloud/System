@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 import { getSession } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
 import { redirect } from 'next/navigation'
+import { revalidatePath } from 'next/cache'
 
 export async function submitCommitteeReview(visitId: number, formData: FormData) {
   const session = await getSession()
@@ -69,13 +70,41 @@ export async function submitCommitteeReview(visitId: number, formData: FormData)
     denied: 'لا يصرف',
   }
 
+  // Check total distinct committee reviews for this visit
+  const totalReviews = await prisma.committeeReview.count({
+    where: { visitId },
+  })
+
+  // Quorum rule: If at least 2 members have given their opinions and visit is in committee_review,
+  // automatically advance to doctor_review!
+  if (totalReviews >= 2 && visit.status === 'committee_review') {
+    await prisma.visit.update({
+      where: { id: visitId },
+      data: { status: 'doctor_review' },
+    })
+
+    await logAudit(
+      session.userId,
+      'اكتمال نصاب اللجنة وإحالة للطبيب',
+      `اكتمل نصاب اللجنة الطبية (${totalReviews} أعضاء سجلوا توصياتهم) للزيارة رقم #${visitId} وتم تحويلها تلقائياً لمراجعة واعتماد الطبيب`,
+      'visit',
+      visitId
+    )
+  }
+
   await logAudit(
     session.userId,
     existing ? 'تعديل رأي اللجنة' : 'إضافة رأي اللجنة',
-    `عضو اللجنة ${session.name} ${existing ? 'عدّل' : 'سجل'} توصيته: [${decisionLabels[decision] || decision}] للزيارة رقم ${visitId}`,
+    `عضو اللجنة ${session.name} ${existing ? 'عدّل' : 'سجل'} توصيته: [${decisionLabels[decision] || decision}] للزيارة رقم #${visitId} (إجمالي توصيات اللجنة: ${totalReviews})${visit.status === 'doctor_review' ? ' - تم إلحاق الرأي أثناء مراجعة الطبيب' : ''}`,
     'committee_review',
     reviewId
   )
+
+  // Invalidate Next.js cache so the doctor and all pages reflect the new opinion immediately
+  revalidatePath(`/visits/${visitId}`)
+  revalidatePath(`/visits/${visitId}/decision`)
+  revalidatePath(`/visits/${visitId}/committee`)
+  revalidatePath('/dashboard')
 
   redirect(`/visits/${visitId}`)
 }

@@ -6,8 +6,16 @@ import StatusBadge from '@/components/StatusBadge'
 import { sendToCommittee, sendToDoctor } from '@/lib/actions/visit-actions'
 import PrescriptionImageViewer from '@/components/PrescriptionImageViewer'
 
-export default async function VisitPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function VisitPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>
+  searchParams?: Promise<{ error?: string }>
+}) {
   const { id } = await params
+  const resolvedSearchParams = searchParams ? await searchParams : {}
+  const errorParam = resolvedSearchParams.error
   const session = await getSession()
   if (!session) return redirect('/login')
 
@@ -59,6 +67,28 @@ export default async function VisitPage({ params }: { params: Promise<{ id: stri
           </Link>
         </div>
       </div>
+
+      {/* Quorum Warning Banner if redirected from Decision page */}
+      {errorParam === 'quorum' && (
+        <div
+          style={{
+            padding: '14px 18px',
+            background: 'rgba(239, 68, 68, 0.1)',
+            border: '1px solid var(--red)',
+            borderRadius: 'var(--radius)',
+            color: 'var(--red)',
+            marginBottom: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+          }}
+        >
+          <span style={{ fontSize: '1.25rem' }}>⚠️</span>
+          <div>
+            <strong>نصاب اللجنة الطبية غير مكتمل:</strong> يلزم تسجيل رأي عضوين على الأقل من أعضاء اللجنة الطبية قبل التمكن من اعتماد القرار النهائي من قبل الطبيب.
+          </div>
+        </div>
+      )}
 
       {/* Basic Visit Information (Redacting clinical fields for accountant) */}
       <div className="card" style={{ marginBottom: '24px' }}>
@@ -343,31 +373,107 @@ export default async function VisitPage({ params }: { params: Promise<{ id: stri
 
         {visit.status === 'committee_review' && (
           <>
+            {/* Quorum Notice */}
+            {visit.committeeReviews.length < 2 && (
+              <div
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  background: 'rgba(234, 179, 8, 0.1)',
+                  border: '1px solid var(--yellow)',
+                  borderRadius: 'var(--radius-sm)',
+                  color: 'var(--yellow)',
+                  fontSize: '0.88rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                <span>⏳</span>
+                <span>
+                  <strong>نصاب اللجنة الطبية قيد الانتظار:</strong> تم تسجيل رأي ({visit.committeeReviews.length} من 2) أعضاء مطلوبين كحد أدنى. سيتم إرسال الحالة تلقائياً للطبيب فور إبداء العضو الثاني لرأيه.
+                </span>
+              </div>
+            )}
+
             {(session.role === 'member' || session.role === 'admin') && (
-              <Link href={`/visits/${visit.id}/committee`} className="btn btn-yellow btn-lg" style={{ flex: 1, minWidth: '200px', justifyContent: 'center' }}>
-                ✍️ تسجيل توصية اللجنة الطبية
+              <Link
+                href={`/visits/${visit.id}/committee`}
+                className="btn btn-yellow btn-lg"
+                style={{ flex: 1, minWidth: '220px', justifyContent: 'center' }}
+              >
+                {myReview ? '✏️ تعديل توصيتي باللجنة' : '✍️ إبداء رأي وتوصية اللجنة الطبية'}
               </Link>
             )}
+
             {(session.role === 'doctor' || session.role === 'admin') && (
-              <form action={sendToDoctorWithId} style={{ flex: 1, minWidth: '200px' }}>
-                <button type="submit" className="btn btn-primary btn-lg" style={{ width: '100%', justifyContent: 'center' }}>
-                  📤 إرسال الحالة إلى الطبيب للاعتماد
+              visit.committeeReviews.length >= 2 ? (
+                <form action={sendToDoctorWithId} style={{ flex: 1, minWidth: '220px' }}>
+                  <button type="submit" className="btn btn-primary btn-lg" style={{ width: '100%', justifyContent: 'center' }}>
+                    📤 إرسال الحالة إلى الطبيب للاعتماد ({visit.committeeReviews.length} توصيات)
+                  </button>
+                </form>
+              ) : (
+                <button
+                  type="button"
+                  disabled
+                  className="btn btn-outline btn-lg"
+                  style={{
+                    flex: 1,
+                    minWidth: '220px',
+                    justifyContent: 'center',
+                    opacity: 0.6,
+                    cursor: 'not-allowed',
+                  }}
+                  title="يلزم تسجيل رأي عضوين على الأقل قبل الإرسال للطبيب"
+                >
+                  ⏳ بانتظار اكتمال نصاب اللجنة (عضوين على الأقل)
                 </button>
-              </form>
+              )
             )}
           </>
         )}
 
         {visit.status === 'doctor_review' && (
-          session.role === 'doctor' || session.role === 'admin' ? (
-            <Link href={`/visits/${visit.id}/decision`} className="btn btn-green btn-lg" style={{ flex: 1, minWidth: '240px', justifyContent: 'center' }}>
-              ⚖️ إصدار واعتماد القرار النهائي وتفريغ الأدوية
-            </Link>
-          ) : (
-            <div style={{ flex: 1, padding: '12px 18px', background: 'var(--bg-input)', borderRadius: 'var(--radius)', border: '1px solid var(--border)', textAlign: 'center', color: 'var(--text-secondary)' }}>
-              🩺 الحالة بانتظار اتخاذ القرار النهائي من الطبيب المعتمد
-            </div>
-          )
+          <>
+            {/* Committee members can STILL submit or edit their opinion even when in doctor_review */}
+            {(session.role === 'member' || session.role === 'admin') && (
+              <Link
+                href={`/visits/${visit.id}/committee`}
+                className={`btn btn-lg ${myReview ? 'btn-outline' : 'btn-yellow'}`}
+                style={{ flex: 1, minWidth: '240px', justifyContent: 'center' }}
+              >
+                {myReview
+                  ? '✏️ تعديل توصيتي السابقة باللجنة'
+                  : '✍️ تسجيل رأيك في اللجنة الطبية (متاح ومفتوح)'}
+              </Link>
+            )}
+
+            {session.role === 'doctor' || session.role === 'admin' ? (
+              <Link
+                href={`/visits/${visit.id}/decision`}
+                className="btn btn-green btn-lg"
+                style={{ flex: 1, minWidth: '240px', justifyContent: 'center' }}
+              >
+                ⚖️ إصدار واعتماد القرار النهائي وتفريغ الأدوية ({visit.committeeReviews.length} توصيات)
+              </Link>
+            ) : (
+              <div
+                style={{
+                  flex: 1,
+                  padding: '12px 18px',
+                  background: 'var(--bg-input)',
+                  borderRadius: 'var(--radius)',
+                  border: '1px solid var(--border)',
+                  textAlign: 'center',
+                  color: 'var(--text-secondary)',
+                  fontSize: '0.88rem',
+                }}
+              >
+                🩺 الحالة معروضة حالياً على الطبيب المعتمد (مع إمكانية تسجيل أي عضو لرأيه مباشرة)
+              </div>
+            )}
+          </>
         )}
 
         {(visit.status === 'approved' || visit.status === 'rejected') && (session.role === 'doctor' || session.role === 'admin') && (

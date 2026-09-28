@@ -51,6 +51,9 @@ export default async function DashboardPage({
           include: {
             patient: true,
             finalDecision: true,
+            committeeReviews: {
+              select: { userId: true },
+            },
           },
         })
       : Promise.resolve([]),
@@ -403,27 +406,71 @@ export default async function DashboardPage({
                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                           {/* Direct Workflow Buttons */}
                           {visit.status === 'committee_review' && (
-                            <Link
-                              href={`/visits/${visit.id}/committee`}
-                              className="btn btn-sm btn-yellow"
-                            >
-                              ✍️ إبداء الرأي
-                            </Link>
+                            <>
+                              {(session.role === 'member' || session.role === 'admin') && (
+                                <Link
+                                  href={`/visits/${visit.id}/committee`}
+                                  className="btn btn-sm btn-yellow"
+                                >
+                                  {visit.committeeReviews?.some((r: any) => r.userId === session.userId)
+                                    ? '✏️ تعديل الرأي'
+                                    : '✍️ إبداء الرأي'}
+                                </Link>
+                              )}
+                              {(visit.committeeReviews?.length || 0) < 2 && (
+                                <span
+                                  style={{
+                                    fontSize: '0.75rem',
+                                    color: 'var(--yellow)',
+                                    background: 'rgba(234, 179, 8, 0.1)',
+                                    padding: '2px 6px',
+                                    borderRadius: '4px',
+                                  }}
+                                  title={`نصاب اللجنة: تم تسجيل ${visit.committeeReviews?.length || 0} من 2 أعضاء كحد أدنى`}
+                                >
+                                  نصاب ({visit.committeeReviews?.length || 0}/2)
+                                </span>
+                              )}
+                            </>
                           )}
 
                           {visit.status === 'doctor_review' && (
-                            (session.role === 'doctor' || session.role === 'admin') ? (
-                              <Link
-                                href={`/visits/${visit.id}/decision`}
-                                className="btn btn-sm btn-green"
-                              >
-                                ⚖️ اتخاذ القرار
-                              </Link>
-                            ) : (
-                              <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                                ⏳ بانتظار الطبيب
-                              </span>
-                            )
+                            <>
+                              {(session.role === 'doctor' || session.role === 'admin') && (
+                                <Link
+                                  href={`/visits/${visit.id}/decision`}
+                                  className="btn btn-sm btn-green"
+                                >
+                                  ⚖️ اتخاذ القرار
+                                </Link>
+                              )}
+                              {(session.role === 'member' || session.role === 'admin') && (
+                                <Link
+                                  href={`/visits/${visit.id}/committee`}
+                                  className={`btn btn-sm ${
+                                    visit.committeeReviews?.some((r: any) => r.userId === session.userId)
+                                      ? 'btn-outline'
+                                      : 'btn-yellow'
+                                  }`}
+                                  title={
+                                    visit.committeeReviews?.some((r: any) => r.userId === session.userId)
+                                      ? 'تعديل توصيتك المسجلة'
+                                      : 'لم تسجل رأيك بعد، يمكنك إضافته الآن وسيظهر مباشرة للطبيب'
+                                  }
+                                >
+                                  {visit.committeeReviews?.some((r: any) => r.userId === session.userId)
+                                    ? '✏️ تعديل الرأي'
+                                    : '✍️ إبداء الرأي (متاح)'}
+                                </Link>
+                              )}
+                              {session.role !== 'doctor' &&
+                                session.role !== 'admin' &&
+                                visit.committeeReviews?.some((r: any) => r.userId === session.userId) && (
+                                  <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                                    ⏳ معروضة للطبيب
+                                  </span>
+                                )}
+                            </>
                           )}
 
                           {visit.status === 'new' && session.role === 'admin' && (

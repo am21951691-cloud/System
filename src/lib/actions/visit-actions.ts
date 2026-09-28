@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 import { getSession } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
 import { redirect } from 'next/navigation'
+import { revalidatePath } from 'next/cache'
 
 function sanitizeInput(val: unknown, maxLen = 255): string | null {
   if (val === null || val === undefined) return null
@@ -85,6 +86,16 @@ export async function sendToDoctor(visitId: number) {
     throw new Error('غير مصرح لك بإرسال الحالة للطبيب - هذه الصلاحية للطبيب أو مدير النظام فقط')
   }
 
+  const reviewsCount = await prisma.committeeReview.count({
+    where: { visitId },
+  })
+
+  if (reviewsCount < 2) {
+    throw new Error(
+      `لا يمكن تحويل الحالة للطبيب: تم تسجيل رأي ${reviewsCount} عضو فقط. يلزم تسجيل رأي عضوين على الأقل من اللجنة الطبية لاكتمال النصاب.`
+    )
+  }
+
   await prisma.visit.update({
     where: { id: visitId },
     data: { status: 'doctor_review' },
@@ -93,10 +104,14 @@ export async function sendToDoctor(visitId: number) {
   await logAudit(
     session.userId,
     'إرسال الحالة للطبيب',
-    `تم إرسال الزيارة رقم ${visitId} للطبيب بواسطة ${session.name}`,
+    `تم إرسال الزيارة رقم ${visitId} للطبيب بواسطة ${session.name} (نصاب اللجنة: ${reviewsCount} أعضاء)`,
     'visit',
     visitId
   )
+
+  revalidatePath(`/visits/${visitId}`)
+  revalidatePath(`/visits/${visitId}/decision`)
+  revalidatePath('/dashboard')
 
   redirect(`/visits/${visitId}`)
 }
