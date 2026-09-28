@@ -127,7 +127,9 @@ export async function submitFinalDecision(visitId: number, formData: FormData) {
     'اعتماد القرار النهائي',
     `قام الطبيب ${session.name} باعتماد القرار [${decisionLabel}] للزيارة رقم #${visitId} ${
       decisionType === 'approved'
-        ? `مع تفريغ ${medicationsCount} أصناف أدوية وجدولة الصرف`
+        ? medicationsCount > 0
+          ? `مع تفريغ ${medicationsCount} أصناف أدوية وجدولة الصرف`
+          : 'بالاعتماد على الروشتة المرفقة وجدولة الصرف'
         : ''
     }`,
     'visit',

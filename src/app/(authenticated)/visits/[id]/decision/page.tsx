@@ -201,6 +201,7 @@ export default async function DecisionPage({ params }: { params: Promise<{ id: s
           initialDecisionType={visit.finalDecision?.decisionType || 'approved'}
           initialReason={visit.finalDecision?.reason}
           initialDuration={visit.finalDecision?.dispenseDuration}
+          initialQuantity={visit.finalDecision?.dispenseQuantity}
           initialSchedule={visit.finalDecision?.dispenseSchedule}
           existingMedications={visit.medications}
         />
